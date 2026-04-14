@@ -1,0 +1,197 @@
+---
+title: "Roles in TFW: Coordinator, Researcher, Executor, Reviewer"
+description: "TFW enforces four distinct AI roles with Role Lock. Each role has permitted artifacts, forbidden actions, and a hard stop protocol that prevents role confusion."
+---
+
+TFW enforces a strict separation of concerns through a mechanism called **Role Lock**. Each workflow declares a role at the top — and the agent operating in that workflow must refuse any action outside that role's boundaries. Role confusion is one of the most common failure modes in AI-assisted work; Role Lock is the structural fix.
+
+There are four AI roles and one human role. Each role has a defined set of artifacts it may write, artifacts it is forbidden from touching, and a Hard Stop rule that dictates what to do when its work is complete.
+
+## Role overview
+
+| Role | Writes | Forbidden from writing | Workflow |
+|------|--------|------------------------|---------|
+| Coordinator | HL, TS, KNOWLEDGE.md, TECH_DEBT.md | ONB, RF, REVIEW, code | `plan.md`, `resume.md`, `docs.md`, `release.md` |
+| Researcher | RES, research/ stage files | HL, TS, ONB, RF, REVIEW, code | `research/base.md` |
+| Executor | ONB, RF, code | HL, TS, RES, REVIEW | `handoff.md` |
+| Reviewer | REVIEW | ONB, RF, HL, TS, code | `review.md` |
+| Human | Approves HL and TS | — | — |
+
+## The four AI roles
+
+<AccordionGroup>
+  <Accordion title="Coordinator">
+    The Coordinator is the strategic planner and orchestrator. It writes the High Level (HL) to frame the task and the Task Spec (TS) to define the execution contract. It manages the Task Board in `README.md` and hands off to the Researcher, Executor, and Reviewer at the appropriate points in the lifecycle.
+
+    **Permitted artifacts:** HL, TS, KNOWLEDGE.md, TECH_DEBT.md, project config files, VERSION, CHANGELOG.md  
+    **Forbidden artifacts:** ONB, RF, REVIEW, code
+
+    The Coordinator is also responsible for:
+    - Running the `/tfw-knowledge` consolidation after APPROVE verdicts
+    - Triaging Observations from RF into `TECH_DEBT.md` after review
+    - Writing per-phase HL artifacts for multi-phase tasks
+    - Answering blocking questions in the Executor's ONB
+
+    **Hard Stop — after TS approval:**
+    1. Inform the user that planning is complete
+    2. Instruct: "Start `/tfw-handoff` to begin execution"
+    3. **Do not continue into execution**
+
+    The Coordinator must never write an ONB, implement code, or produce an RF — even if it believes the task is simple enough to skip those steps. This is a Role Lock violation.
+  </Accordion>
+
+  <Accordion title="Researcher">
+    The Researcher is a dedicated investigation agent. It follows the OODA loop across four research stages — Briefing, Gather, Extract, Challenge — producing stage files in `tasks/{ID}/research/` and a final RES synthesis artifact at the task root.
+
+    **Permitted artifacts:** RES, research/ stage files  
+    **Forbidden artifacts:** HL, TS, ONB, RF, REVIEW, code
+
+    The Researcher's cognitive mode at each stage:
+    - **Briefing** — understand the research question and scope
+    - **Gather** — collect raw information from project files and web sources
+    - **Extract** — surface hidden knowledge and identify patterns
+    - **Challenge** — critically test findings, seek counter-evidence
+
+    In multi-iteration research, the Researcher reads `iterations.yaml` at the start of each iteration to understand predecessor context and assigned hypotheses. It never deletes previous iteration folders — they are part of the reasoning trace.
+
+    **Hard Stop — after writing RES:**
+    1. Inform the user that research is complete
+    2. Instruct: "Continue with `/tfw-plan` to apply research findings"
+    3. **Do not write HL or TS**
+
+    The Researcher recommends whether to proceed or run more iterations in the `Iteration Status` block — but the Coordinator makes the final decision.
+  </Accordion>
+
+  <Accordion title="Executor">
+    The Executor implements the approved TS. Before writing a single line of code, it produces an ONB report demonstrating its understanding of the task and surfacing any blocking questions. After implementation, it writes an RF documenting everything that happened.
+
+    **Permitted artifacts:** ONB, RF, code  
+    **Forbidden artifacts:** HL, TS, RES, REVIEW
+
+    The Executor's responsibilities during execution:
+    - Stay strictly within TS scope — no "bonus fixes" without documenting them in RF deviations
+    - Make incremental commits in AG mode
+    - Report out-of-scope observations in RF §5 (never silently fix them)
+    - Record Fact Candidates discovered during execution in RF §6
+    - Write RF only after build and lint pass
+
+    **Hard Stop — after writing RF:**
+    1. Inform the user that execution is complete
+    2. Instruct: "Start `/tfw-review` to review the results"
+    3. **Do not write a REVIEW file**
+
+    The Executor must never modify the Master HL, make architectural decisions not in the HL, or modify files outside the TS scope — even for obvious fixes.
+  </Accordion>
+
+  <Accordion title="Reviewer">
+    The Reviewer (the Coordinator operating in review mode) reads the RF and TS and writes a formal REVIEW artifact. It works through the 9-point checklist, issues one of three verdicts (APPROVE, REVISE, REJECT), and triages executor Observations into `TECH_DEBT.md`.
+
+    **Permitted artifacts:** REVIEW  
+    **Forbidden artifacts:** ONB, RF, HL, TS, code
+
+    The Reviewer's 9-point checklist:
+
+    | # | Check | Accepts N/A |
+    |---|-------|------------|
+    | 1 | DoD met? (all TS acceptance criteria) | No |
+    | 2 | Code quality (conventions, naming, type hints) | No |
+    | 3 | Test coverage (tests written and passing) | No |
+    | 4 | Philosophy aligned (matches HL design philosophy) | No |
+    | 5 | Tech debt (shortcuts documented?) | No |
+    | 6 | Security (no secrets exposed, guards in place) | Yes |
+    | 7 | Breaking changes (backward compat, migrations) | Yes |
+    | 8 | Style & standards (code style, conventions) | No |
+    | 9 | Observations collected (executor reported findings) | No |
+
+    The Reviewer cannot write code, write an ONB, write an RF, or modify HL/TS. The REVIEW file is the only artifact the Reviewer produces. For trivial tasks, the Reviewer may pre-mark `tfw-docs: N/A` and `tfw-knowledge: N/A` in REVIEW §4 — in which case the task transitions directly to DONE without a separate KNW step.
+  </Accordion>
+</AccordionGroup>
+
+## The Human role
+
+The Human is the final authority in TFW. AI roles are enforced structurally — but the Human's approvals are what advance the pipeline.
+
+- **Approves the HL** before any TS is written. No HL approval = no TS.
+- **Approves the TS** before execution begins. No TS approval = no handoff.
+- **Reviews the REVIEW verdict** and decides whether to accept APPROVE, escalate a REVISE, or redirect a REJECT.
+- **Provides secrets via environment variables** — never in plain text in any artifact.
+- **Answers blocking questions** in the Executor's ONB by writing directly in the file.
+
+The Human is not a passive approver. They provide the domain knowledge, strategic context, and corrections that become Strategic Insights in HL §11, RF §7, and RES — the highest-value knowledge inputs in TFW.
+
+## Role Lock protocol
+
+Every workflow file in `.tfw/workflows/` begins with a `🔒 ROLE LOCK` declaration. The agent must refuse any action outside the locked role's boundaries — regardless of instructions in the conversation.
+
+The full permission matrix across all workflows:
+
+| Workflow | Role Lock | Permitted Artifacts | Forbidden Artifacts |
+|----------|-----------|---------------------|---------------------|
+| `init.md` | Coordinator | RES, RF, project config files | HL, TS, code |
+| `plan.md` | Coordinator | HL, TS | ONB, RF, RES, REVIEW, code |
+| `research/base.md` | Researcher | RES, research/ stage files | HL, TS, ONB, RF, REVIEW, code |
+| `handoff.md` | Executor | ONB, RF, code | HL, TS, RES, REVIEW |
+| `review.md` | Reviewer | REVIEW | ONB, RF, HL, TS, code |
+| `resume.md` | Coordinator | Status matrix, Phase HL, Phase TS | ONB, RF, RES, REVIEW, code |
+| `docs.md` | Coordinator | KNOWLEDGE.md, TECH_DEBT.md | code |
+| `release.md` | Coordinator | VERSION, CHANGELOG.md | code |
+| `update.md` | Coordinator | `.tfw/` files, adapter copies | code |
+| `config.md` | Coordinator | PROJECT_CONFIG.yaml, workflow files, adapter copies | code |
+
+## Role Lock violations (anti-patterns)
+
+<Warning>
+The following are prohibited anti-patterns. Each one has occurred in practice and caused real problems — which is why they are explicitly listed in `conventions.md §14`.
+
+**Coordinator violations:**
+- Coordinator writes ONB, RF, or implements code → **Role Lock violation**
+- Coordinator skips review and closes the task without a REVIEW file
+
+**Executor violations:**
+- Executor starts coding before all blocking questions in ONB are resolved
+- Executor skips reading the HL and goes straight to code
+- Executor modifies the Master HL without Coordinator approval
+- Executor makes architectural decisions not covered in the HL
+- Executor modifies files outside TS scope — even for "obvious fixes"
+- Executor does "bonus fixes" without documenting them in RF deviations
+- Executor writes the RF before build/lint passes
+- Executor sees tech debt or dead code but does not report it in Observations
+- Executor writes HL, TS, or changes scope → **Role Lock violation**
+- Executor writes a REVIEW file → **Role Lock violation**
+
+**Reviewer violations:**
+- Reviewer writes code, ONB, or RF → **Role Lock violation**
+- Coordinator ignores executor Observations — must triage all to TECH_DEBT.md
+
+**General:**
+- TS is written without an approved HL
+- RF file does not mention test results or observations
+</Warning>
+
+## Hard Stop rules summary
+
+Each role has a Hard Stop — the point at which it must hand off to the next role and stop.
+
+| Role | Triggers at | Hard Stop action |
+|------|-------------|-----------------|
+| Coordinator | TS approved | Inform user, instruct to start `/tfw-handoff`, stop |
+| Researcher | RES written | Inform user, instruct to continue with `/tfw-plan`, stop |
+| Executor | RF written | Inform user, instruct to start `/tfw-review`, stop |
+| Reviewer | REVIEW written | Inform user of verdict, update traces, stop |
+
+The Hard Stop rules are structural role transitions, not optional suggestions. An agent that ignores a Hard Stop and continues into the next role's domain is committing a Role Lock violation.
+
+<CardGroup cols={2}>
+  <Card title="Task lifecycle" href="/concepts/task-lifecycle">
+    How roles sequence through the 9 statuses
+  </Card>
+  <Card title="Artifact types" href="/concepts/artifact-types">
+    What each role's artifacts contain
+  </Card>
+  <Card title="Handoff workflow" href="/workflows/handoff">
+    The Executor's workflow in detail
+  </Card>
+  <Card title="Review workflow" href="/workflows/review">
+    The Reviewer's workflow in detail
+  </Card>
+</CardGroup>

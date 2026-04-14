@@ -1,0 +1,110 @@
+---
+title: "Introduction to Trace-First Workflow (TFW)"
+description: "TFW is a team methodology that replaces documentation with traces — structured artifacts that capture decisions, reasoning, and alternatives automatically."
+---
+
+Trace-First Workflow (TFW) is a team methodology where every task — code, research, analytics, business processes — automatically captures decisions, reasoning, and rejected alternatives as structured trace files. When a chat session ends or a team member changes, the project doesn't reset. Any team member or AI agent reads the traces and resumes from the last checkpoint.
+
+## The problem TFW solves
+
+Most AI-assisted work happens in dialogue. You explain the project, negotiate constraints, make trade-offs, and the AI produces something useful. Then the chat ends. Tomorrow you open a new session and re-explain everything from scratch.
+
+Scale this to a team and the problem becomes structural. A colleague opens a new session — and the context you built yesterday is invisible. A product manager's decision doesn't reach the developer implementing it. An analyst's finding disappears between sessions. Knowledge lives in people's heads, in Slack threads, in meeting notes nobody re-reads.
+
+TFW calls this **knowledge evaporation** — the fundamental bottleneck of AI-assisted work. The solution isn't a better tool. It's a better discipline: every task produces a trace, and traces are the project's permanent memory.
+
+## Who TFW is for
+
+TFW works for any domain where decisions need to survive beyond a single session: code, analytics, writing, education, and business processes — the same lifecycle, the same artifacts, the same knowledge compounding.
+
+<CardGroup cols={2}>
+  <Card title="Product leaders" icon="chess-king">
+    Your decisions don't propagate. Strategy discussed in one session doesn't reach the person implementing it. When team members change, institutional knowledge walks out the door.
+
+    TFW makes every decision traceable — who made it, why, what was rejected. Any team member reads the traces and picks up where the previous one left off.
+  </Card>
+  <Card title="Engineers" icon="code">
+    "Why was this built this way?" Nobody knows. The person who decided left. The chat session expired. The reasoning died with the context window.
+
+    TFW captures architecture decisions, rejected alternatives, and constraints alongside the code. A new developer reads the traces, not just the codebase.
+  </Card>
+  <Card title="Analysts and researchers" icon="magnifying-glass-chart">
+    Your previous analysis isn't discoverable. Research iterations lose context. Reports don't reference the decisions that drove them.
+
+    TFW preserves every research iteration with structured findings, hypotheses tested, and decisions made. Knowledge compounds instead of resetting.
+  </Card>
+  <Card title="Anyone who can't lose context" icon="rotate">
+    TFW is not limited to software. The same lifecycle works for product management, data analytics, academic research, content creation, and business operations — any domain where decisions build on prior decisions.
+  </Card>
+</CardGroup>
+
+## Key principles
+
+TFW is built on eight values that drive every design decision in the methodology:
+
+**Traces Over Code** — The trace is the product. Intent, decisions, constraints, and alternatives matter more than the implementation itself. A codebase without traces is a black box.
+
+**Candor Over Flattery** — TFW agents are explicitly instructed not to be sycophantic. Be direct, flag risks, disagree when evidence supports it. Quality of planning matters more than speed of pipeline progression.
+
+**Completeness Over Speed** — No placeholders. No `// TODO: implement this`. If you can't produce a complete solution, say what's missing — don't fill the gap with a stub.
+
+**Honesty Over Convincingness** — AI agents that sound confident while being wrong are more dangerous than agents that refuse to answer. When context is insufficient, ask — don't guess.
+
+**Structural Enforcement** — Gates should be structural (file existence, folder structure, required artifacts), not procedural (checkboxes in documents). If a stage isn't done, the file doesn't exist. The filesystem is the state machine.
+
+**Naming Creates Behavior** — Right terminology triggers right associations in AI agents. TFW uses precise terms — OODA, Sufficiency Verdict, Trust Protocol — because a small prompt with precise terms is more effective than a long prompt with explanations.
+
+**Single Source of Truth** — `.tfw/` contains exactly one copy of each convention, template, and workflow. Tool adapters reference it, never duplicate.
+
+**Portability** — Everything is Markdown. No vendor lock-in. The files work in Obsidian, VS Code, GitHub, or a plain text editor. The knowledge belongs to you, not to a platform.
+
+## How TFW compares
+
+TFW occupies a different category from the tools most teams already use.
+
+| Tool / approach | What it does | What it misses |
+|:--|:--|:--|
+| **Confluence / Notion** | Stores knowledge someone chose to write | Requires manual documentation; knowledge decays when nobody maintains it |
+| **Ad-hoc AI chat** | Fast iteration in a single session | Knowledge evaporates between sessions; decisions don't propagate to the team |
+| **AI coding assistants** (Cursor, Claude Code) | Produces code faster | No mechanism to preserve the reasoning behind the code across sessions |
+| **Trace-First Workflow** | Generates knowledge as a byproduct of working | — |
+
+The key distinction: Confluence and Notion are knowledge *storage* tools — they hold what someone decides to write. TFW is a knowledge *generation* methodology — it captures decisions, reasoning, and alternatives as a byproduct of working. You don't document your decisions; your decisions document themselves.
+
+## The task lifecycle
+
+Every TFW task moves through a deterministic pipeline. Each stage produces a specific artifact stored as a file in your project.
+
+```
+⬜ TODO → 📝 HL_DRAFT → 🔬 RES → 🟡 TS_DRAFT → 🟠 ONB → 🟢 RF → 🔍 REV → 📚 KNW → ✅ DONE
+```
+
+| Artifact | What it captures |
+|:--|:--|
+| **HL** (High Level) | Intent, constraints, and decisions before implementation begins |
+| **RES** (Research Report) | Structured investigation: hypotheses, findings, decisions, rejected alternatives |
+| **TS** (Task Spec) | Self-contained task definition with scope, steps, and acceptance criteria |
+| **ONB** (Onboarding Report) | Executor's structured understanding before starting — questions, risks, inconsistencies |
+| **RF** (Result File) | Results, decisions, observations, and fact candidates for knowledge capture |
+| **REVIEW** | Formal 9-point checklist review with verdict and tech debt triage |
+
+<Note>
+The RES (Research) and KNW (Knowledge Capture) stages are optional. For straightforward tasks, the coordinator can move directly from HL to TS. For completed tasks that don't require knowledge consolidation, the reviewer can pre-mark knowledge steps as N/A.
+</Note>
+
+## What's next
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Add TFW to a new or existing project in minutes with a single copy-paste prompt to your AI agent.
+  </Card>
+  <Card title="Philosophy" icon="lightbulb" href="/philosophy">
+    Read the full thesis — why traces matter more than code and how knowledge evaporation is the core bottleneck.
+  </Card>
+  <Card title="Task lifecycle" icon="arrows-spin" href="/concepts/task-lifecycle">
+    Explore the full 9-status pipeline and every artifact type in detail.
+  </Card>
+  <Card title="Tool adapters" icon="plug" href="/adapters/overview">
+    Connect TFW to Claude Code, Cursor, Antigravity, or any chat-based AI tool.
+  </Card>
+</CardGroup>

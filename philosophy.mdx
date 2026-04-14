@@ -1,0 +1,160 @@
+---
+title: "The thinking is the product"
+description: "TFW is built on a single thesis — the trace is more valuable than the code. Read why knowledge evaporation is the core bottleneck of AI-assisted work."
+---
+
+*"The thinking is the product. Everything else is output."*
+
+Trace-First Workflow is built on a simple observation: when AI assists your work, the most valuable artifact produced is not the code or the document — it is the trace. The record of intent, decisions, constraints, and rejected alternatives that led to the result. Code can be regenerated. The reasoning behind it cannot.
+
+## The problem: knowledge evaporates
+
+Most work with AI happens in dialogue. You explain the project. You negotiate constraints. You make trade-offs. The AI produces something useful. And then the chat ends.
+
+Tomorrow you open a new session. The context is gone. You re-explain everything from scratch. The model doesn't remember your architecture, your naming conventions, why you chose one technology over another, which algorithm fit the constraints, or the three approaches you already rejected. You start over.
+
+This is not a minor annoyance — it is the fundamental bottleneck of AI-assisted work.
+
+Scale this to a team and the problem becomes structural. Your colleague opens a new session — and the context you built yesterday is invisible. A product manager's strategic decision doesn't reach the developer implementing it. An analyst's finding doesn't reach the team member who needs it. Knowledge lives in people's heads, in Slack threads, in meeting notes that nobody re-reads.
+
+**The symptoms are everywhere:**
+
+- Threads branch and drift. There is no single source of truth.
+- You keep answering "what is this project again?" in every new chat.
+- Model resets and forced new sessions wipe working memory.
+- Context windows silently truncate key decisions.
+- Deliverables ship without the "why" — making them hard to maintain or evolve.
+- Agents waste tokens re-reading long, unstructured histories.
+
+**The common fixes don't work:**
+
+- **One giant prompt** becomes brittle, expensive, and stale within days.
+- **Pinned notes** without a ritual decay into uncurated scrapbooks nobody reads.
+- **Chat exports** are linear blobs — impossible to search, impossible to use for onboarding a new agent.
+
+What's needed is not a better tool. It's a better discipline.
+
+## The thesis: traces over code
+
+TFW inverts the traditional priority. In a traditional workflow, code is the artifact and documentation is an afterthought. In a Trace-First workflow, traces are the artifact and code is a reproducible output.
+
+| Traditional | Trace-First |
+|:--|:--|
+| Code is the artifact; docs are an afterthought | Traces are the artifact; code is a reproducible output |
+| Context lives in the developer's head | Context lives in files that any agent or human can read |
+| Onboarding = "read the codebase" | Onboarding = read AGENTS → HL → TS → RF |
+| New chat = start from zero | New chat = load traces, resume from last checkpoint |
+| Team knowledge lives in Slack threads and meetings | Team knowledge lives in structured traces any member can read |
+
+Traces are the team's shared memory. When any team member — human or AI — reads the HL, TS, and RF chain, they understand not just what exists, but why it exists, what was considered, and what was rejected.
+
+This is closely related to the **AI-First** philosophy: if AI produces most of the code, then the architecture, processes, and knowledge must be organized for the AI, not just for the human developer. The human's job shifts from *writing* code to *managing* the context that the AI needs to produce correct code.
+
+Unlike knowledge tools that require someone to write and maintain documentation, TFW generates knowledge as a byproduct of the methodology itself. The traces left by working *are* the documentation.
+
+## How TFW works
+
+TFW is a ritual with a predictable structure and one unbreakable rule: **every task produces a trace.**
+
+A task moves through a deterministic lifecycle — Plan → Research → Specify → Onboard → Execute → Deliver → Review → Close. Each stage produces a specific artifact (HL, RES, TS, ONB, RF, REVIEW). The artifacts are files. The files are the project's memory.
+
+When you start a new chat, the new agent reads the Task Board and relevant traces — and knows where the project stands. No re-explanation needed. No context lost. The traces live where the work lives.
+
+The methodology is domain-agnostic. The same ritual works for code, analytics, writing, education, and business processes. It is tool-agnostic — the same `.tfw/` core works in Claude Code, Cursor, Antigravity, or a plain chat window.
+
+## Values and principles
+
+TFW is built on eight values. Each one exists because a specific failure mode was observed — and the value was the fix.
+
+<AccordionGroup>
+  <Accordion title="Traces Over Code">
+    The trace is the product — intent, decisions, constraints, and alternatives matter more than the implementation itself. A codebase without traces is a black box. TFW captures not just *what* was built, but *why*, *what else was considered*, and *what was rejected*.
+
+    Code can be regenerated. A well-structured prompt with the right context will produce the same output again and again. The *reasoning* behind the prompt — why you asked for this, what you tried before, what constraints you imposed — is the irreplaceable knowledge that makes future work possible.
+  </Accordion>
+  <Accordion title="Candor Over Flattery">
+    AI agents trained on human feedback develop a habit of agreeing with users and praising their ideas. TFW agents are explicitly instructed: **don't be sycophantic**. Be direct, precise, concrete. Flag risks. Disagree when evidence supports it.
+
+    The coordinator's job is to ask uncomfortable questions and catch implicit assumptions. Quality of planning matters more than speed of pipeline progression. An agent that validates bad ideas and rushes to execution is more dangerous than one that slows down and challenges.
+  </Accordion>
+  <Accordion title="Completeness Over Speed">
+    When asked to implement, provide complete, usable output. **No placeholders.** No `// TODO: implement this`. If you can't produce a complete solution, say what's missing — don't fill the gap with a stub.
+
+    Incomplete output is not faster — it transfers work from the AI to the human, and requires a follow-up session that re-explains the context all over again. Completeness in one session costs less than incompleteness across two.
+  </Accordion>
+  <Accordion title="Honesty Over Convincingness">
+    AI agents that sound confident while being wrong are more dangerous than agents that refuse to answer. TFW agents must never fabricate data, claim untested results, or simulate external systems.
+
+    When context is insufficient, the correct behavior is to ask, not guess. Confidence without correctness is the deadliest failure mode. A plausible-sounding wrong answer is harder to catch — and more destructive — than an honest admission of uncertainty.
+  </Accordion>
+  <Accordion title="Structural Enforcement">
+    Gates should be structural — file existence, folder structure, required artifacts — not procedural (checkboxes in documents, state tables in headers). If a stage isn't done, the file doesn't exist. No parsing needed, no format compliance required, no update discipline to enforce.
+
+    **The filesystem is the state machine.** This is not merely a convenience — it is a reliability principle. Procedural gates depend on discipline; structural gates depend on reality. Structural enforcement means a new agent can audit the project's state with a simple directory listing.
+  </Accordion>
+  <Accordion title="Naming Creates Behavior">
+    Right terminology triggers right associations in AI agents. A small prompt with precise terms is more effective than a long prompt with explanations. TFW adopted OODA, Sufficiency Verdict, Trust Protocol, Progressive Disclosure — each term replaced paragraphs of instructions.
+
+    If you have to explain what a step does, the step is named wrong. Naming is not cosmetic — it is the primary interface between the methodology and the agent executing it.
+  </Accordion>
+  <Accordion title="Single Source of Truth">
+    `.tfw/` contains exactly one copy of each convention, template, and workflow. Tool adapters reference it, never duplicate. If you need to change a rule, change it in one place.
+
+    Duplication is the silent killer of documentation. When the same rule exists in two places, one of them will be wrong within a week. TFW enforces single source of truth as a structural constraint: adapters point to `.tfw/`, they do not copy from it.
+  </Accordion>
+  <Accordion title="Portability">
+    Everything is Markdown. No vendor lock-in. The files work in Obsidian, VS Code, GitHub, or a plain text editor. The knowledge belongs to you, not to a platform.
+
+    TFW's portability is a deliberate rejection of platform dependency. If a tool disappears, the traces survive. If the team switches tools, the knowledge transfers. The methodology outlives any specific AI assistant, IDE, or documentation platform.
+  </Accordion>
+</AccordionGroup>
+
+## Success criteria
+
+A TFW project is successful when four conditions are met:
+
+1. **Any team member can resume from any checkpoint.** A new person (human or AI) reads the Task Board and relevant traces, and picks up where the previous one left off. No re-explanation needed. No context lost.
+
+2. **Every decision is traceable.** For any choice in the project, you can find the reasoning: what prompted it, what alternatives existed, what was rejected and why.
+
+3. **Knowledge compounds over time.** The project accumulates structured knowledge that makes every next decision better, every onboarding faster, and every context switch lossless.
+
+4. **The output requires no manual editing.** If the result is wrong, you fix the prompt and the context, not the output. The traces are complete enough to produce correct results.
+
+These are not aspirational goals — they are the measurable outcomes of following the methodology correctly.
+
+## How TFW compares
+
+TFW occupies a different category from most tools teams compare it to.
+
+| Approach | What it does | Core limitation |
+|:--|:--|:--|
+| **Knowledge storage** (Confluence, Notion, wikis) | Protects existing knowledge through enforcement or usability | Someone must write the documentation. Someone must maintain it. When nobody does, knowledge decays, goes stale, and stops being read. |
+| **AI coding assistants** (Cursor, Claude Code, Copilot) | Helps you write code faster | No mechanism to preserve the context that makes code maintainable across sessions or team members. |
+| **No methodology** (ad-hoc AI chat) | Fast, frictionless iteration | Knowledge evaporates between sessions. Decisions don't propagate. New team members start from zero. The project can't explain itself. |
+| **Trace-First Workflow** | Generates knowledge as a byproduct of working | — |
+
+The fundamental difference: knowledge storage tools protect existing knowledge. TFW generates knowledge. Nobody writes the documentation separately. Nobody maintains it separately. The traces produced by planning, researching, executing, and reviewing *are* the documentation — produced as a byproduct of the work itself.
+
+TFW and AI coding assistants are complementary. TFW works *inside* tools like Claude Code and Cursor (via adapters) to add traceability, knowledge capture, and structured decision-making to the AI-assisted workflow. The assistant produces code faster; TFW ensures the reasoning that produced it survives the session.
+
+<Note>
+TFW doesn't compete with your tools — it adds a layer of discipline on top of them. The `.tfw/` core works with any tool that can read files.
+</Note>
+
+## Read more
+
+<CardGroup cols={2}>
+  <Card title="Quick start" icon="rocket" href="/quickstart">
+    Add TFW to a new or existing project in minutes with a single copy-paste prompt.
+  </Card>
+  <Card title="Task lifecycle" icon="arrows-spin" href="/concepts/task-lifecycle">
+    Explore the full 9-status pipeline: HL, RES, TS, ONB, RF, REVIEW, and how they chain together.
+  </Card>
+  <Card title="Artifact types" icon="file-lines" href="/concepts/artifact-types">
+    Understand each artifact — HL, RES, TS, ONB, RF, REVIEW — and the knowledge it captures.
+  </Card>
+  <Card title="Tool adapters" icon="plug" href="/adapters/overview">
+    Connect TFW to Claude Code, Cursor, Antigravity, or any chat-based AI tool.
+  </Card>
+</CardGroup>

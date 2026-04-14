@@ -1,0 +1,162 @@
+---
+title: "Plan a task with /tfw-plan"
+description: "/tfw-plan guides the Coordinator through creating an HL artifact, optional research gate, and a Task Spec ready for executor handoff. Learn each step."
+---
+
+`/tfw-plan` is the task inception workflow. It belongs to the **Coordinator** role — the agent responsible for writing HL and TS artifacts. The Coordinator does not write ONB, RF, RES, REVIEW, or code. That boundary is absolute.
+
+The workflow moves from understanding the problem, through a Knowledge Gate check, into writing a High Level artifact (HL), deciding whether research is needed, and finally producing an approved Task Spec (TS) that an executor can act on.
+
+<Note>
+**Knowledge Gate (Phase 0):** Before any planning work begins, `/tfw-plan` checks `.tfw/knowledge_state.yaml` and reads `tfw.knowledge.gate_mode` from `PROJECT_CONFIG.yaml`. If the number of tasks since the last consolidation meets or exceeds the configured interval, the workflow either hard-stops and requires `/tfw-knowledge` first (`gate_mode: hard`), issues a reminder (`gate_mode: soft`), or skips silently (`gate_mode: off`). A skipped hard gate must be recorded: `knowledge-gate: skipped (reason: ...)`.
+</Note>
+
+## Steps
+
+<Steps>
+  <Step title="Load context">
+    Read `conventions.md` §10 (Context Loading). Verify that AGENTS.md is loaded, KNOWLEDGE.md is read, the task board in `README.md` is checked, and both `conventions.md` and `glossary.md` are loaded. If any file is missing, load it now before proceeding.
+  </Step>
+
+  <Step title="Knowledge Gate check">
+    Read `.tfw/knowledge_state.yaml` and compute `current_seq - last_consolidation_seq`.
+
+    - If the gap meets or exceeds the configured interval and `gate_mode` is `hard` → **HARD STOP**. Run `/tfw-knowledge` before continuing. Skipping requires a documented justification.
+    - If `gate_mode` is `soft` → display a reminder and continue.
+    - If `gate_mode` is `off` → skip silently.
+  </Step>
+
+  <Step title="Research and understand the problem">
+    Before proposing any solution, invest in understanding:
+
+    1. Read relevant code, existing HL files, and knowledge items.
+    2. Understand what is broken, missing, or needs to change — do not rush to solutions.
+    3. Study how similar problems were solved before (existing Architecture Decisions).
+    4. Batch all clarifying questions (maximum 3–5), then **wait** for user answers.
+
+    The Coordinator's mindset is strategic architect. Quality of planning outweighs speed of pipeline progression.
+  </Step>
+
+  <Step title="Write the HL artifact">
+    1. Create the task folder: `tasks/{PREFIX}-{N}__{description}/` — read `tfw.task_prefix` and `tfw.initial_seq` from `PROJECT_CONFIG.yaml`.
+    2. Create the HL file using `templates/HL.md` as the canonical format.
+    3. Fill **§3.1 Result Visualization** — an ASCII diagram of the To-Be state is mandatory. Add a Mermaid diagram if the flow is complex.
+    4. Fill **§10 (RESEARCH justification)** — write 2–4 hypotheses. For each, apply the filter: "If false, would the approach change?" Remove hypotheses that fail this test. Add blind spots and the risks of not researching.
+    5. Add the task to the project Task Board in `README.md` with status `📝 HL_DRAFT`. The task ID must be a link: `[PROJ-N](tasks/PROJ-N__title/)`.
+    6. Fill **§11 Strategic Session Insights** — review the conversation history and capture what would be unknown without the user's input (Category from §10.1, Source).
+
+    **Gate: user approves HL.** Present the HL for review. Incorporate feedback. Repeat until approved.
+  </Step>
+
+  <Step title="Hypothesis iteration">
+    Present the §10 hypotheses to the user one by one:
+
+    - "I know the answer" → mark confirmed or refuted in the table, record the answer.
+    - "Not sure" → mark as needs-research.
+    - "This is obvious" → remove from the table.
+
+    After iterating through all hypotheses:
+    - If all are confirmed or refuted → research is optional (offer to skip).
+    - If any are marked needs-research → recommend running `/tfw-research`.
+    - If the Coordinator still sees remaining blind spots → recommend research even if the user considers the task obvious.
+
+    **Wait** for the user's response before proceeding.
+  </Step>
+
+  <Step title="RESEARCH decision and iteration management">
+    Review HL §10. Present the recommendation: "N hypotheses need research. Blind spots: [list]. Recommend: RESEARCH / skip."
+
+    The default recommendation is to **run RESEARCH**. Frame it as risk reduction: "Without RESEARCH, we are assuming X, Y, Z — are we confident enough?" Skipping requires a concrete justification beyond "the task is simple."
+
+    **If the user skips:** confirm and proceed to writing the TS.
+
+    **If the user approves research:** create `iterations.yaml` in the task folder.
+
+    <Info>
+    The `iterations.yaml` file controls multi-iteration research. The Coordinator creates it before launching the first research iteration and updates it after each iteration returns. The Researcher reads it to understand predecessor context and assigned hypotheses.
+
+    ```yaml
+    task_id: PROJ-N
+    title: research focus description
+    min_iterations: 2       # from tfw.research.min_iterations or coordinator override
+    max_iterations: 5       # soft ceiling
+    iterations:
+      - number: 1
+        focus: "initial investigation of H1-H3"
+        hypotheses: [H1, H2, H3]
+        status: complete     # pending | in_progress | complete
+        res_file: RES__PROJ-N__title.md
+      - number: 2
+        focus: "deepen findings from iter 1, test H4"
+        hypotheses: [H4]
+        status: pending
+        res_file: RES__iter2__title.md
+    ```
+    </Info>
+
+    After creating `iterations.yaml`, instruct the team: "Start `/tfw-research`. Researcher role takes over." **STOP.**
+
+    **Iteration gate (after each research iteration returns):**
+
+    Read all `RES__*` files and `iterations.yaml`. For each completed iteration:
+    1. Mark the iteration `status: complete` in `iterations.yaml` and record the `res_file`.
+    2. Read the Iteration Status block from the RES artifact (gaps, open threads, recommendation).
+    3. Update the HL with research findings and present the diff to the user.
+
+    - If completed iterations < `min_iterations` → **must** launch the next iteration. Add the next entry to `iterations.yaml` with focus derived from the previous RES gaps. **STOP.**
+    - If completed iterations ≥ `min_iterations` and the Researcher recommends MORE NEEDED and the Coordinator agrees → launch the next iteration.
+    - If completed iterations ≥ `min_iterations` and findings are sufficient → proceed to writing the TS.
+
+    After all iterations complete: update HL → present diff → user confirms → proceed.
+  </Step>
+
+  <Step title="Write the TS">
+    1. Determine complexity — single-phase or multi-phase?
+    2. Read `tfw.scope_budgets` from `PROJECT_CONFIG.yaml` and check limits (see scope budgets below). Count files in TS, count new files, estimate LOC. If any limit is exceeded → split into phases or document an override with justification.
+
+    **Single-phase task:**
+    - Write TS using `templates/TS.md`.
+    - Get user approval on TS.
+    - **STOP.** "TS is approved. Suggest execute `/tfw-handoff`. After RF, run `/tfw-review`."
+
+    **Multi-phase task:** Create a phase subfolder structure and write Phase HL + TS for each phase:
+
+    ```
+    tasks/{PREFIX}-{N}__{title}/          ← master HL, RES, research/ here
+      PhaseA/
+        HL__PhaseA__{title}.md
+        TS__PhaseA__{title}.md
+      PhaseB/
+        HL__PhaseB__{title}.md
+        TS__PhaseB__{title}.md
+    ```
+
+    Each phase follows the full cycle: HL → TS → `/tfw-handoff` → ONB → RF → `/tfw-review` → REVIEW.
+
+    Suggest executing via `/tfw-handoff`, then run `/tfw-review` after each RF. Repeat for subsequent phases.
+  </Step>
+</Steps>
+
+## Scope budgets
+
+The Coordinator checks these limits at TS-writing time. Values are defaults from `tfw.scope_budgets` in `PROJECT_CONFIG.yaml` and can be overridden per project.
+
+| Parameter | Default | Config key |
+|-----------|---------|------------|
+| Files per phase | 14 | `max_files_per_phase` |
+| New files per phase | 8 | `max_new_files` |
+| LOC per phase | 1,200 | `max_loc` |
+| Modified files | 12 | `max_modified_files` |
+
+## Role boundary
+
+The Coordinator role is locked for this workflow. Writing ONB, RF, RES, REVIEW, or code is a Role Lock violation that requires an immediate stop and report. Even for trivial tasks, the role boundary is absolute. When the TS is approved, the Coordinator instructs the executor to start `/tfw-handoff` and stops.
+
+<CardGroup cols={2}>
+  <Card title="Run structured research" icon="flask" href="/workflows/research">
+    When the Coordinator recommends RESEARCH, the Researcher role takes over with `/tfw-research`.
+  </Card>
+  <Card title="Execute a task" icon="play" href="/workflows/handoff">
+    After TS approval, hand execution off to the Executor with `/tfw-handoff`.
+  </Card>
+</CardGroup>

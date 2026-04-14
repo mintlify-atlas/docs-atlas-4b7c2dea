@@ -1,0 +1,130 @@
+---
+title: "Claude Code adapter: slash commands for TFW"
+description: "TFW's Claude Code adapter registers twelve slash commands — /tfw-plan, /tfw-handoff, /tfw-review, and more — via CLAUDE.md and .claude/commands/ directory."
+---
+
+The Claude Code adapter makes TFW's full workflow library available as slash commands inside Claude Code. When you open a project session, Claude Code automatically loads `CLAUDE.md` from the project root. That file establishes the TFW context — role rules, conduct standards, context-loading order, and a reference table of every slash command. The actual command implementations live in `.claude/commands/`, a directory Claude Code scans automatically to register each `/tfw-*` command.
+
+## How the adapter works
+
+Two files power the integration.
+
+**`CLAUDE.md`** is the project-level entry point. Claude Code loads it at the start of every session without any configuration. It tells the agent which version of TFW is in use, specifies the context-loading order, lists all slash commands with their canonical workflow files, and sets conduct rules (no sycophancy, no placeholders, reply in the user's language).
+
+**`.claude/commands/`** is the slash command directory. Each file in this directory becomes a `/tfw-*` command. Every command file is a thin adapter: it sets the role lock (`COORDINATOR`, `EXECUTOR`, or `REVIEWER`), specifies which canonical workflow to load from `.tfw/workflows/`, and passes through the user's `$ARGUMENTS`. No workflow logic is duplicated in the command files themselves — they reference `.tfw/workflows/` as the single source of truth.
+
+### Directory structure
+
+```
+project-root/
+├── CLAUDE.md                          # Auto-loaded by Claude Code
+└── .claude/
+    └── commands/
+        ├── tfw-plan.md                # /tfw-plan
+        ├── tfw-research.md            # /tfw-research
+        ├── tfw-handoff.md             # /tfw-handoff
+        ├── tfw-review.md              # /tfw-review
+        ├── tfw-resume.md              # /tfw-resume
+        ├── tfw-knowledge.md           # /tfw-knowledge
+        ├── tfw-docs.md                # /tfw-docs
+        ├── tfw-release.md             # /tfw-release
+        ├── tfw-task.md                # /tfw-task
+        ├── tfw-update.md              # /tfw-update
+        ├── tfw-init.md                # /tfw-init
+        └── tfw-config.md              # /tfw-config
+```
+
+## Setup
+
+<Steps>
+  <Step title="Copy CLAUDE.md to your project root">
+    Copy the template from the adapter directory and fill in your project details.
+
+    ```bash
+    cp .tfw/adapters/claude-code/CLAUDE.md.template ./CLAUDE.md
+    ```
+
+    Open `CLAUDE.md` and replace the template placeholders:
+    - `{project_name}` — your project name
+    - `{stack}` — your tech stack
+    - `{owner}` — your name or team
+    - `{project-specific code standards}` — your lint rules, naming conventions, etc.
+    - `{version}` — replace with the value from `.tfw/VERSION`
+  </Step>
+  <Step title="Copy the command files">
+    Copy the slash command files from the starter repository's `.claude/commands/` into your project.
+
+    ```bash
+    mkdir -p .claude/commands
+    cp /path/to/trace-first-starter/.claude/commands/tfw-*.md .claude/commands/
+    ```
+
+    Claude Code discovers these files automatically — no registration step needed.
+  </Step>
+  <Step title="Verify the integration">
+    Open your project in Claude Code and type `/tfw`. You should see all twelve commands in the autocomplete list. Run `/tfw-init` to initialize TFW if you haven't already, or `/tfw-plan` to start a new task.
+  </Step>
+</Steps>
+
+<Tip>
+  During `tfw-init`, the agent handles adapter setup automatically. It copies `CLAUDE.md` and all command files, fills in your project details, and verifies the integration — you don't need to follow the manual steps above unless you're setting up without running `tfw-init` first.
+</Tip>
+
+## Slash commands
+
+All twelve commands follow the same thin adapter pattern: role lock + workflow reference, no logic duplication.
+
+| Command | Workflow | Role | Purpose |
+|---------|----------|------|---------|
+| `/tfw-plan` | `.tfw/workflows/plan.md` | Coordinator | Research the problem, write HL, run the RESEARCH gate, write TS |
+| `/tfw-research` | `.tfw/workflows/research/base.md` | Researcher | Structured investigation — pipeline stage or standalone |
+| `/tfw-handoff` | `.tfw/workflows/handoff.md` | Executor | Load context, write ONB, implement, write RF |
+| `/tfw-review` | `.tfw/workflows/review.md` | Reviewer | Review RF against checklist, write REVIEW, record verdict |
+| `/tfw-resume` | `.tfw/workflows/resume.md` | Coordinator | Run status matrix for a multi-phase task, decide next phase |
+| `/tfw-knowledge` | `.tfw/workflows/knowledge.md` | Coordinator | Consolidate fact candidates into verified project knowledge |
+| `/tfw-docs` | `.tfw/workflows/docs.md` | Coordinator | Update `KNOWLEDGE.md` and `TECH_DEBT.md` after a task closes |
+| `/tfw-release` | `.tfw/workflows/release.md` | Coordinator | Version bump, CHANGELOG update, git tag |
+| `/tfw-task` | `plan.md` + `handoff.md` | Coordinator | Full lifecycle meta-workflow: plan then handoff with a hard stop between |
+| `/tfw-update` | `.tfw/workflows/update.md` | Coordinator | Fetch upstream TFW, compare versions, sync adapter files |
+| `/tfw-init` | `.tfw/workflows/init.md` | Coordinator | Initialize TFW in a project — discover, interview, setup |
+| `/tfw-config` | `.tfw/workflows/config.md` | Coordinator | Interactive config change, propagate to inline values in workflows |
+
+### Context loading order
+
+Every command that references `CLAUDE.md` instructs Claude Code to load context in this strict order at the start of a session:
+
+1. `CLAUDE.md` — auto-loaded by Claude Code
+2. `AGENTS.md` — AI role and mission for this project
+3. `.tfw/conventions.md` — formal rules, naming, scope budgets
+4. `.tfw/glossary.md` — terminology
+5. `KNOWLEDGE.md` (if present) — architecture decisions, verified facts
+6. Relevant HL, TS, or RF files for the current task
+
+## The thin adapter pattern
+
+Each command file in `.claude/commands/` does exactly three things and nothing more:
+
+1. **Role lock** — declares `COORDINATOR`, `EXECUTOR`, or `REVIEWER` at the top of the file, preventing role violations
+2. **Context load** — instructs the agent to load the correct files before starting
+3. **Workflow reference** — reads the canonical workflow from `.tfw/workflows/` and follows it
+
+This is intentional. If the workflow for `/tfw-plan` changes, updating `.tfw/workflows/plan.md` is sufficient. The command file doesn't need to change. When you run `/tfw-update`, the workflow files are refreshed and the command files continue to reference them correctly.
+
+<Note>
+  The slash commands in `.claude/commands/` and the workflow files in `.tfw/workflows/` are separate. Commands are the Claude Code interface; workflows are the tool-agnostic logic. Editing a command file does not change how the workflow works for other tools.
+</Note>
+
+## Execution modes
+
+The Claude Code adapter supports both TFW execution modes, controlled by the user at runtime:
+
+- **CL (Chat Loop)** — default. Claude Code proposes steps, and you approve or execute external actions. The agent never claims something was run or tested outside the session.
+- **AG (Autonomous)** — enabled by explicit user request. The agent works independently within the approved TS scope, makes incremental commits, and stops when it encounters anything not covered by the task spec.
+
+## Key references
+
+- `CLAUDE.md` — project entry point (auto-loaded)
+- `.tfw/README.md` — TFW philosophy and full task lifecycle
+- `.tfw/conventions.md` — all formal rules, anti-patterns, role lock protocol
+- `.tfw/PROJECT_CONFIG.yaml` — project parameters (task prefix, scope budgets, build commands)
+- `.tfw/CHANGELOG.md` — TFW version history

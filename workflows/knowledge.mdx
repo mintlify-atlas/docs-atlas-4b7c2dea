@@ -1,0 +1,165 @@
+---
+title: "Consolidate knowledge with /tfw-knowledge"
+description: "/tfw-knowledge converts raw Fact Candidates from task artifacts into verified project knowledge stored in topic files — running Orient, Gather, Consolidate, and Prune phases."
+---
+
+`/tfw-knowledge` is the knowledge consolidation workflow. It belongs to the **Coordinator** role. The workflow converts raw Fact Candidates — recorded across RF, REVIEW, and RES artifacts — into verified project knowledge stored in topic files under the `knowledge/` folder. It updates `KNOWLEDGE.md` §4 and `knowledge_state.yaml` after each run.
+
+The workflow runs either manually (invoke `/tfw-knowledge` at any time) or automatically when the Knowledge Gate in `/tfw-plan` Step 2 detects that consolidation is overdue.
+
+<Note>
+**Knowledge vs documentation.** Knowledge is what would be unknown without a human saying it: vision, priorities, emotions, business context, architectural philosophy, process corrections. Technical implementation details (tool configs, API constraints, build errors) belong in `/tfw-docs`, not here.
+
+**YES:** "primary output = knowledge graph, not docs site", "close as MVP, don't stretch phases."
+**NO:** "MkDocs docs_dir cannot be project root", "use directory URLs not .md."
+</Note>
+
+## Prerequisites
+
+Before starting, load:
+
+1. `.tfw/knowledge_state.yaml` — current state and last consolidation sequence number.
+2. `KNOWLEDGE.md` — current knowledge index.
+3. All topic files in `knowledge/` — current verified facts.
+4. `.tfw/PROJECT_CONFIG.yaml` → `tfw.knowledge` section — limits and gate configuration.
+
+## Configuration
+
+| Parameter | Default | Config key |
+|-----------|---------|------------|
+| Consolidation interval (tasks) | 5 | `tfw.knowledge.interval` |
+| Gate mode | `hard` | `tfw.knowledge.gate_mode` |
+| Max facts per topic file | 50 | `tfw.knowledge.max_facts_per_topic` |
+| Max topic files | 8 | `tfw.knowledge.max_topic_files` |
+
+`gate_mode` controls the Knowledge Gate behavior in `/tfw-plan` Step 2:
+- `hard` — hard stop, requires `/tfw-knowledge` before planning continues.
+- `soft` — reminder only, planning can continue.
+- `off` — gate is skipped silently.
+
+## The 4 phases
+
+<Steps>
+  <Step title="Orient">
+    1. Note `last_consolidation_seq` from `knowledge_state.yaml` and compute the task range to scan.
+    2. List all existing topic files with their current fact counts.
+    3. Read `conventions.md` §10.1 — list all canonical categories. Note which categories have topic files and which do not.
+    4. Present an orientation summary to the user, including coverage gaps (categories with no topic files).
+  </Step>
+
+  <Step title="Gather">
+    Scan all artifacts for tasks completed since `last_consolidation_seq`. Read in priority order:
+
+    1. **HL §11 (Strategic Session Insights)** — Coordinator's captured signals from planning sessions.
+    2. **RF §7 (Execution Session Insights)** — Executor's captured signals from live testing (if the section exists).
+    3. **RF, REVIEW, RES §Fact Candidates** — standard Fact Candidate sections.
+
+    Also review the current session's conversation history — extract facts from user messages not captured in any artifact.
+
+    Check category coverage: do any candidates belong to categories without topic files? Do not force facts into existing categories — create a new topic file when justified.
+
+    Present all gathered candidates to the user:
+
+    ```
+    Found {N} candidates from {M} artifacts:
+    | # | Candidate | Category | Source | Confidence |
+    |---|-----------|----------|--------|------------|
+    ```
+
+    **Wait** — the user reviews candidates before consolidation proceeds.
+
+    <Info>
+    §11/§7 insights are pre-filtered strategic signals with higher value than standard Fact Candidates. Standard Fact Candidates mix strategic and technical observations — apply the Human-Only Test more strictly when processing them.
+    </Info>
+  </Step>
+
+  <Step title="Consolidate">
+    For each candidate, apply these checks in order:
+
+    1. **Human-Only Test** — would this fact be unknown without the human saying it? If an agent can discover it by reading code, running commands, or checking docs → **reject**.
+    2. **Deduplicate** — if the fact already exists in a topic file → skip.
+    3. **Contradiction check** — if the fact contradicts an existing fact → flag it and ask the user. Do not auto-resolve contradictions.
+    4. **Verification** — if 2 or more independent sources confirm the fact → mark as verified ✅. If only 1 source → present to user for confirmation.
+    5. **Write to topic file** — `knowledge/{category}.md`. If no topic file exists for the category, create one from `.tfw/templates/TOPIC_FILE.md`. Check `max_facts_per_topic` and `max_topic_files` limits.
+    6. **Mark processed** — add a marker to the source artifact:
+
+    ```markdown
+    > fact-candidates: processed YYYY-MM-DD
+    ```
+
+    Present the consolidation results to the user before finalizing. **Wait** for approval before writing any changes.
+  </Step>
+
+  <Step title="Update (Prune)">
+    1. Review existing facts for staleness — flag any fact whose source is more than 20 tasks old or whose source artifact has been deleted. Do not auto-delete; present the flags to the user.
+    2. Update `KNOWLEDGE.md` §4 (Project Facts) — update category counts and links to topic files.
+
+    <Warning>
+    Do not write to KNOWLEDGE.md §1 (Architecture Map) or §2 (Key Artifacts). Those sections belong to `/tfw-docs`, not `/tfw-knowledge`.
+    </Warning>
+
+    3. Update `.tfw/knowledge_state.yaml`:
+
+    ```yaml
+    last_consolidation_seq: 12
+    last_consolidation_date: 2025-04-14
+    stats:
+      total_facts: 47
+      verified: 38
+      unverified: 9
+      rejected: 12
+      candidates_processed: 21
+      sources_scanned: 5
+    ```
+
+    4. Present a summary to the user. **Wait** for final approval before writing.
+  </Step>
+</Steps>
+
+## Fact categories
+
+The following canonical categories are defined in `conventions.md` §10.1. Agents may use custom categories when none of these fit — do not force facts into an ill-fitting category.
+
+| Category | Scope | Examples |
+|----------|-------|---------|
+| `environment` | Where work lives | servers, tools, platforms, labs |
+| `process` | How work gets done | schedules, approvals, reporting cadence |
+| `stakeholder` | Who needs what | priorities, pain points, key decisions |
+| `constraint` | What limits exist | regulatory deadlines, resource caps, technical limits |
+| `convention` | Agreed standards | naming, style, format, language, tone |
+| `domain` | Subject matter knowledge | revenue patterns, business rules, market metrics |
+| `context` | Background shaping decisions | market conditions, prior decisions, competitive landscape |
+| `risk` | Known dangers | client concentration, fragile dependencies, knowledge silos |
+| `philosophy` | Values and principles | design rationale, north star decisions, "why we do it this way" |
+
+## Topic file structure
+
+Each topic file in `knowledge/` contains verified facts for one category. Created from `.tfw/templates/TOPIC_FILE.md`.
+
+```markdown
+# {Category} — Project Knowledge
+
+> Last updated: YYYY-MM-DD | Facts: N | Source tasks: PROJ-1, PROJ-3
+
+| # | Fact | Confidence | Sources | Added |
+|---|------|------------|---------|-------|
+| 1 | [verified fact] | ✅ verified | RF PROJ-3, HL PROJ-5 | 2025-04-01 |
+| 2 | [single-source fact] | ⚠️ unverified | RF PROJ-7 | 2025-04-14 |
+```
+
+## Behavior rules
+
+- **Do not invent facts** — only consolidate from artifacts and the current conversation.
+- **Do not auto-resolve contradictions** — present both versions and let the user decide.
+- **Do not delete facts** without explicit user confirmation.
+- **Do not modify RF/REVIEW/RES content** — only add the `fact-candidates: processed` marker.
+- **Do not default all facts to existing categories** — check §10.1 for the full list and create new topic files when justified.
+
+<CardGroup cols={2}>
+  <Card title="Review completed work" icon="check-circle" href="/workflows/review">
+    The Knowledge Capture phase (KNW) is triggered after a REVIEW APPROVE verdict — that is when Fact Candidates are ready for consolidation.
+  </Card>
+  <Card title="Knowledge capture concepts" icon="database" href="/concepts/knowledge-capture">
+    Learn more about the Fact Candidate model, the Human-Only Test, and how knowledge flows through the system.
+  </Card>
+</CardGroup>

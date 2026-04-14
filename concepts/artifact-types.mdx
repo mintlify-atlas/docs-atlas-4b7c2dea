@@ -1,0 +1,246 @@
+---
+title: "TFW artifact types: HL, RES, TS, ONB, RF, REVIEW"
+description: "TFW defines six canonical artifact types. Each has a strict template, a specific cognitive mode, and a defined role in the task lifecycle. Learn what each artifact contains."
+---
+
+TFW artifacts are not just documents — they are the project's permanent memory. Each artifact type has a canonical template in `.tfw/templates/`, a specific cognitive mode that guides how it should be written, and a defined position in the task lifecycle. Together, the chain of HL → RES → TS → ONB → RF → REVIEW is what allows any new agent or human to resume work in a new session without losing context.
+
+<CardGroup cols={2}>
+  <Card title="HL — High Level" icon="map">
+    The "map of meaning" for a task. Frames vision, phases, risks, and Definition of Done.
+  </Card>
+  <Card title="RES — Research Report" icon="flask">
+    Structured investigation artifact. Produced via four stages: Briefing, Gather, Extract, Challenge.
+  </Card>
+  <Card title="TS — Task Spec" icon="list-check">
+    Self-contained task definition: scope, steps, affected files, acceptance criteria.
+  </Card>
+  <Card title="ONB — Onboarding Report" icon="door-open">
+    Executor's understanding report before starting work. Surfaces blocking questions and risks.
+  </Card>
+  <Card title="RF — Result File" icon="file-lines">
+    Primary source of truth for what happened. Contains decisions, verification, observations.
+  </Card>
+  <Card title="REVIEW — Review Report" icon="magnifying-glass">
+    Formal coordinator review with 9-point checklist, verdict, and tech debt triage.
+  </Card>
+</CardGroup>
+
+## Artifact details
+
+<AccordionGroup>
+  <Accordion title="HL — High Level">
+    **Role:** Coordinator  
+    **Status:** 📝 HL_DRAFT  
+    **Template:** `.tfw/templates/HL.md`
+
+    The HL is not a task — it is the "map of meaning" for the work. It captures the strategic frame: why this task matters, what the current state is, what the target state should be, and how to decompose it into phases. The human must approve the HL before any TS can be written.
+
+    **Key sections:**
+    - `§1 Vision` — strategic narrative, written as if already done ("Working Backwards")
+    - `§2 Current State (As-Is)` — problems, structure, metrics, constraints with real data
+    - `§3 Target State (To-Be)` — deliverables with Before → After comparison
+    - `§3.1 Result Visualization` — outcome preview from 6 months after launch
+    - `§3.2 Value Flow` — the process that creates the outcome (INPUT → PROCESSING → OUTCOME)
+    - `§4 Phases` — breakdown into A, B, C phases, each with its own TS→RF cycle
+    - `§5 Definition of Done` — numbered criteria, each starting with ✅
+    - `§6 Definition of Failure` — failure conditions and rollback plan
+    - `§10 RESEARCH Case` — blind spots, hypotheses, proposed research focus
+    - `§11 Strategic Insights (Planning)` — human-sourced domain knowledge with implications
+
+    **Visual section — Value Flow (§3.2):** Cognitive mode is strategic/value-oriented. Shows the mechanism that creates value, not the outcome itself. Formats: ASCII flow (`INPUT → PROCESSING → OUTCOME`), Mermaid diagram, or value stream table. Distinct from §3.1 Result Visualization, which shows the finished picture.
+  </Accordion>
+
+  <Accordion title="RES — Research Report">
+    **Role:** Researcher  
+    **Status:** 🔬 RES  
+    **Template:** `.tfw/templates/RES.md`
+
+    The RES artifact captures structured investigation. It is produced via four sequential stages stored in `tasks/{ID}/research/`: `briefing.md`, `gather.md`, `extract.md`, `challenge.md`. The existence of each file signals stage completion. The RES file at the task root is the synthesis of all stages — decisions, hypotheses, HL update recommendations, and a conclusion.
+
+    **Key sections:**
+    - `Research Context` — what is being researched and why
+    - `Briefing` — copied from or referenced to `research/briefing.md`
+    - `Decisions` — numbered decisions with rationale
+    - `Open Questions` — table tracking question status and answers
+    - `Hypotheses` — from HL §10, tracked with HL status / RES status / Evidence
+    - `HL Update Recommendations` — what the Coordinator should change in the HL
+    - `Fact Candidates` — raw observations (pure reporting, no interpretation)
+    - `Strategic Insights (Research)` — human-sourced domain knowledge observed during briefings
+    - `Findings Map` — analytical visualization of research findings
+    - `Iteration Status` — mandatory block tracking iteration number, hypotheses tested, gaps
+    - `Conclusion` — synthesis paragraph and self-critique
+
+    **Visual section — Findings Map:** Cognitive mode is analytical/research. Visualizes root cause analysis, hypothesis trees, priority matrices, and relationship maps between discoveries. Formats: ASCII, Mermaid, or structured tables.
+
+    **Multi-iteration research:** When research spans multiple iterations, each gets its own subfolder (`research2/`, `research3/`, …) and its own RES file (`RES__iter2__*.md`). An `iterations.yaml` control file at the task root tracks iteration state. Research folders accumulate — never delete previous iterations, as they are part of the reasoning trace.
+  </Accordion>
+
+  <Accordion title="TS — Task Spec">
+    **Role:** Coordinator  
+    **Status:** 🟡 TS_DRAFT  
+    **Template:** `.tfw/templates/TS.md`
+
+    The TS is the contract between the Coordinator and the Executor. It must be self-contained: an Executor who reads only the TS (and the parent HL) must have everything they need to begin. No TS may be written without an approved HL.
+
+    **Key sections:**
+    - `§1 Objective` — one paragraph: what this phase delivers and why it matters
+    - `§2 Scope` — explicit In Scope / Out of Scope lists
+    - `§3 Affected Files` — table of every file with action (CREATE / MODIFY / DELETE) and description, plus budget summary against scope limits
+    - `§4 Detailed Steps` — numbered steps with code examples
+    - `§5 Acceptance Criteria` — checkbox list, directly testable
+    - `§6 Phase Risks` — risk / mitigation table
+
+    The TS is approved by the human before execution begins. After approval, the Coordinator issues a Hard Stop and instructs: "Start `/tfw-handoff` to begin execution."
+  </Accordion>
+
+  <Accordion title="ONB — Onboarding Report">
+    **Role:** Executor  
+    **Status:** 🟠 ONB  
+    **Template:** `.tfw/templates/ONB.md`
+
+    The ONB is the Executor's first deliverable — written before a single line of code is changed. It demonstrates that the Executor has understood the task and surfaces any issues that could block or derail execution. The Coordinator (or human) answers blocking questions directly in the ONB file in Q&A format.
+
+    **Key sections:**
+    - `§1 Understanding` — one-paragraph summary of what needs to be done and why
+    - `§2 Entry Points` — key files and code areas relevant to the task
+    - `§3 Questions` — blocking questions that cannot proceed without answers (Coordinator fills in answers)
+    - `§4 Recommendations` — non-blocking suggestions with rationale
+    - `§5 Risks Found` — edge cases and potential issues not covered in the TS
+    - `§6 Inconsistencies with Code` — spec vs. reality discrepancies
+
+    The Executor does not begin implementation until all blocking questions in §3 are answered. This is enforced by convention, not tooling — an Executor who skips the ONB is committing an anti-pattern.
+  </Accordion>
+
+  <Accordion title="RF — Result File">
+    **Role:** Executor  
+    **Status:** 🟢 RF  
+    **Template:** `.tfw/templates/RF.md`
+
+    The RF is the primary source of truth for what happened in a phase. It has priority over all other artifacts when there is a conflict. It is written only after build and lint pass — an Executor who writes the RF before verification is committing an anti-pattern.
+
+    **Key sections:**
+    - `§1 What Was Done` — tables of new files and modified files
+    - `§2 Key Decisions` — numbered decisions with rationale
+    - `§3 Acceptance Criteria` — checkbox status against each TS criterion
+    - `§4 Verification` — lint, test, and verify command results
+    - `§5 Observations` — out-of-scope issues found but not fixed (dead code, naming, security, etc.)
+    - `§6 Fact Candidates` — raw project observations (pure reporting mode)
+    - `§7 Strategic Insights (Execution)` — human-sourced domain knowledge with implications
+    - `§8 Diagrams` — architecture, ERD, sequence, or component diagrams
+
+    **Visual section — Diagrams (§8):** Cognitive mode is technical/engineering. Visualizes architecture, data flow, component interaction, and sequence diagrams for the work completed. Formats: ASCII, Mermaid, or structured tables.
+
+    **Observation types:** `dead-code`, `naming`, `todo`, `duplication`, `perf`, `security`, `style`, `missing-test`, `ux`. Only report issues that would affect the next developer — do not generate observations just because the section exists.
+  </Accordion>
+
+  <Accordion title="REVIEW — Review Report">
+    **Role:** Reviewer (Coordinator in review mode)  
+    **Status:** 🔍 REV  
+    **Template:** `.tfw/templates/REVIEW.md`
+
+    The REVIEW is the Coordinator's formal response to the RF. It cannot be written by the Executor — doing so is a Role Lock violation. The REVIEW drives the final verdict that determines whether the task closes or loops back.
+
+    **Key sections:**
+    - `§1 Review Checklist` — 9-point checklist (see table below)
+    - `§2 Verdict` — APPROVE / REVISE / REJECT with rationale; REVISE includes specific items to fix; REJECT includes fundamental issues
+    - `§3 Tech Debt Collected` — triage of executor Observations into severity and action
+    - `§4 Traces Updated` — checklist of all project files that must be updated, including `tfw-docs` and `tfw-knowledge` markers
+    - `§5 Fact Candidates` — reviewer-observed project facts (pure reporting mode)
+
+    **The 9-point checklist:**
+
+    | # | Check |
+    |---|-------|
+    | 1 | DoD met? (all TS acceptance criteria) |
+    | 2 | Code quality (conventions, naming, type hints) |
+    | 3 | Test coverage (tests written and passing) |
+    | 4 | Philosophy aligned (matches HL design philosophy) |
+    | 5 | Tech debt (shortcuts documented?) |
+    | 6 | Security (no secrets exposed, guards in place) |
+    | 7 | Breaking changes (backward compat, migrations) |
+    | 8 | Style & standards (code style, conventions) |
+    | 9 | Observations collected (executor reported findings) |
+
+    Checks 6 and 7 accept `N/A` for tasks where they are not applicable.
+  </Accordion>
+</AccordionGroup>
+
+## Fact Candidates
+
+Fact Candidates are a special section present in RF, REVIEW, and RES artifacts. They are raw observations about the project recorded during work — not verified facts. The cognitive mode for writing Fact Candidates is **pure reporting**: record what is factual without interpretation or synthesis.
+
+The quality filter is: **"Would the next agent decide differently knowing this?"** If yes, record it. If not, omit it.
+
+Fact Candidates become verified facts only after the `/tfw-knowledge` consolidation workflow runs. See [Knowledge capture](/concepts/knowledge-capture) for the full consolidation process.
+
+```markdown
+## Fact Candidates
+
+| # | Category | Candidate | Source | Confidence |
+|---|----------|-----------|--------|------------|
+| 1 | stakeholder | Primary output is a knowledge graph, not a docs site | User, planning session | High |
+| 2 | constraint | Regulatory deadline is Q3, non-negotiable | User, HL briefing | High |
+```
+
+## Visual sections
+
+TFW uses per-template naming for visual sections because each template's cognitive mode is different. The naming is not cosmetic — it triggers different reasoning patterns in the AI agent.
+
+| Template | Section | Cognitive Mode | What it produces |
+|----------|---------|---------------|-----------------|
+| HL | §3.1 Result Visualization | Narrative / Outcome | Outcome preview — "imagine it's 6 months after launch" |
+| HL | §3.2 Value Flow | Strategic / Value-oriented | Value streams, INPUT→PROCESSING→OUTCOME, transformation tables |
+| RF | §8 Diagrams | Technical / Engineering | Architecture, ERD, sequence diagrams, component diagrams |
+| RES | Findings Map | Analytical / Research | Root cause analysis, hypothesis trees, priority matrices |
+| REVIEW | — | — | No visual section (checklist artifact, not a result) |
+
+## File naming conventions
+
+Every artifact filename must include the task ID (`{PREFIX}-{N}`) or a Phase identifier. A filename without either is an error.
+
+| Artifact | Format | Example |
+|----------|--------|---------|
+| Master HL | `HL-{PREFIX}-{N}__{title}.md` | `HL-PROJ-3__tfw-setup.md` |
+| Single-phase RES | `RES__{PREFIX}-{N}__{title}.md` | `RES__PROJ-3__tfw-setup.md` |
+| Single-phase TS | `TS__{PREFIX}-{N}__{title}.md` | `TS__PROJ-3__tfw-setup.md` |
+| Single-phase RF | `RF__{PREFIX}-{N}__{title}.md` | `RF__PROJ-3__tfw-setup.md` |
+| Single-phase ONB | `ONB__{PREFIX}-{N}__{title}.md` | `ONB__PROJ-3__tfw-setup.md` |
+| Single-phase REVIEW | `REVIEW__{PREFIX}-{N}__{title}.md` | `REVIEW__PROJ-3__tfw-setup.md` |
+| Phase RES | `RES__Phase{X}__{title}.md` | `RES__PhaseA__conventions.md` |
+| Phase TS | `TS__Phase{X}__{title}.md` | `TS__PhaseA__conventions.md` |
+| Phase RF | `RF__Phase{X}__{title}.md` | `RF__PhaseA__conventions.md` |
+| Phase ONB | `ONB__Phase{X}__{title}.md` | `ONB__PhaseA__conventions.md` |
+| Phase REVIEW | `REVIEW__Phase{X}__{title}.md` | `REVIEW__PhaseA__conventions.md` |
+
+For multi-phase tasks, master artifacts (HL, RES) stay at the task root. Each phase gets a subfolder:
+
+```
+tasks/PROJ-5__query_redesign/
+  HL-PROJ-5__query_redesign.md        ← Master HL
+  RES__PROJ-5__query_redesign.md      ← Master RES (if any)
+  PhaseA/
+    HL__PhaseA__data_model.md
+    TS__PhaseA__data_model.md
+    ONB__PhaseA__data_model.md
+    RF__PhaseA__data_model.md
+    REVIEW__PhaseA__data_model.md
+  PhaseB/
+    HL__PhaseB__api_layer.md
+    ...
+```
+
+<CardGroup cols={2}>
+  <Card title="Task lifecycle" href="/concepts/task-lifecycle">
+    How artifacts flow through the 9 statuses
+  </Card>
+  <Card title="Roles in TFW" href="/concepts/roles">
+    Which role writes which artifact
+  </Card>
+  <Card title="Knowledge capture" href="/concepts/knowledge-capture">
+    How Fact Candidates become verified knowledge
+  </Card>
+  <Card title="Conventions reference" href="/reference/conventions">
+    Full conventions and naming rules
+  </Card>
+</CardGroup>

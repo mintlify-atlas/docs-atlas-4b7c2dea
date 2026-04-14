@@ -1,0 +1,462 @@
+---
+title: "TFW changelog and version history"
+description: "Version history for Trace-First Workflow — current version 0.8.2. Covers all releases with changes, new features, and breaking changes in Keep a Changelog format."
+---
+
+TFW uses [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`. The current installed version is recorded in `.tfw/VERSION`.
+
+## Checking your version
+
+```bash
+cat .tfw/VERSION
+```
+
+<Note>
+To upgrade your project to the latest TFW version, run `/tfw-update`. The update workflow fetches the upstream starter, compares versions, categorizes changes, and walks you through a checklist to re-sync your adapters and inline values.
+</Note>
+
+**Current version: `0.8.2`**
+
+---
+
+## [Unreleased]
+
+No changes staged for the next release.
+
+---
+
+## [0.8.2] — 2026-04-10
+
+### Added
+
+- **Multi-iteration research** — `iterations.yaml` control file, `min_iterations` config (default: 2), Coordinator hard gate in `plan.md` Step 6c, `researchN/` subfolder accumulation (never delete/overwrite), Iteration Status block in RES template, iter2+ briefing protocol in `research/base.md`
+- **Per-template visual sections** — HL §3.1 Value Flow, RF §8 Diagrams, RES Findings Map. Convention cross-ref table in `conventions.md §3`. Per-template criterion: "what would THIS artifact's reader draw on a whiteboard?"
+- **4-part template instruction structure** — Cognitive mode → Scope → Human-Only Test → Before writing. Applied to HL §6/§11, RF §6/§7, RES FC/SI, REVIEW §5
+- **`📚 KNW` pipeline status** — 9th status between REV and DONE. Optional (reviewer can pre-close with N/A). REVIEW markers for tfw-docs/tfw-knowledge orchestration
+- **docs/knowledge exclusive write territories** — tfw-docs owns `KNOWLEDGE.md §1–§3`, tfw-knowledge owns `knowledge/` + §4. Resolves write collision
+- **README "How TFW Compares" section** in `.tfw/README.md` — TFW vs Confluence/Notion vs AI assistants vs no methodology
+- **Positioning specs** — `audience_personas.md`, `positioning_spec.md`, `translation_table.md`, `philosophy_improvement.md`
+
+### Changed
+
+- **README.md opening** — interleave variant: imagine→reality→imagine→TFW. 3-tier audience hierarchy (product leaders > analysts > engineers). "Generates vs stores" in How It Works. 2 new FAQ entries
+- **`.tfw/README.md`** — team dimension in The Problem, SECI generates-vs-stores in The Thesis, team memory table row, role breadth in How TFW Works
+- **`plan.md`** — Step 6b creates `iterations.yaml`, Step 6c iteration gate with `min_iterations` enforcement, phased subfolder diagram in Step 7. Growth: 108→140 lines
+- **`research/base.md`** — iter2+ briefing protocol (read all previous RES + `iterations.yaml`), Iteration Status block instruction
+- **RES template** — Iteration Status block, Fact Candidates sharpened with Cognitive mode + scope + Human-Only Test, Strategic Insights (Research) with Human-Only Test, Findings Map section
+- **HL template** — §3.1 renamed Value Flow (from Result Visualization), §3.2 added, §11 renamed Strategic Insights (Planning) with Cognitive mode instruction
+- **RF template** — §6 FC sharpened, §7 Strategic Insights (Execution) with Human-Only Test + fallback, §8 Diagrams section
+- **REVIEW template** — §5 FC sharpened with Cognitive mode + reviewer scope, tfw-knowledge marker in §4
+- **`conventions.md`** — §3 Visual Sections cross-ref table, Knowledge Capture Sections table, KNW in pipeline diagram + status table
+- **`glossary.md`** — Strategic Insight updated, Value Flow + Findings Map + Per-template Naming added, KNW definition, pipeline diagram updated
+- All adapters synced: `.agent/workflows/`, `.claude/commands/`
+
+### Removed
+
+- **KNOWLEDGE.md §0** (Philosophy & Principles, 8 entries) — all principles verified in `knowledge/philosophy.md` or `conventions.md`. §0 had no updater workflow
+- tfw-knowledge Phase 4 writes to `KNOWLEDGE.md §1/§2` — caused collision with tfw-docs
+
+---
+
+## [0.8.1] — 2026-04-09
+
+### Added
+
+- **`.tfw/quickstart.md`** — strict reading list for AI agents (clone → philosophy → glossary → conventions → init.md). Separates learning from execution to resolve bootstrap paradox
+- **3 self-contained README Quick Start prompts** — New Project, Existing Project, Already Set Up. Each prompt is fully self-contained with repo URL, TFW description, and slash command references
+- **Tutorial Mode mini-examples** in `init.md` — task prefix examples, task board visualization with realistic entries
+- **Star CTA** in `init.md` Phase 5 — after value delivery, not during onboarding
+
+### Changed
+
+- **`init.md` Phase 1 Discover** — rewritten domain-agnostic: purpose/goals, documentation, structure, processes, people first; code-specific items last
+- `compilable_contract.md` — source manifest and nav diagram updated: `.tfw/init.md` → `.tfw/quickstart.md`
+- `conventions.md §9` — adapter setup reference updated to `quickstart.md`
+- `update.md` — merge checklist updated: `init.md` → `quickstart.md`
+- README.md — Quick Start section rewrite, file index and adapter table references updated
+
+### Removed
+
+- **`.tfw/init.md` pointer file** — redundant after `quickstart.md` became the "Getting Started" entry. All references migrated to `quickstart.md`
+- Phase 0 Bootstrap from `init.md` — wrong approach (injected learning into execution workflow). Replaced by `quickstart.md`
+
+---
+
+## [0.8.0] — 2026-04-08
+
+### Added
+
+- **Compilable Contract** — §16 in `conventions.md` (Source Manifest, Reference Format, Resolution Rules, Frontmatter Convention, Output Nav Structure). Agents write text refs (`RF TFW-18`), build-time resolves to hyperlinks
+- **Documentation Pipeline** — `docs/scripts/gen_docs.py` (681 LOC, 68 tests), 10 reference resolvers, structured tasks index, section indexes, YAML frontmatter injection
+- **docs/ infrastructure** — `mkdocs.yml`, `requirements.txt`, `.github/workflows/docs.yml`
+- **Brand Identity** — two-color discipline (charcoal `#1a1a2e` + teal `#0d9488`), Inter/JetBrains Mono typography, TFW monogram logo
+- **GitHub Pages Deploy** — live site at `tfw.saubakirov.kz`, auto-deploy on push to master via GitHub Actions
+- **Coordinator Fact Capture** — `philosophy` in §10.1 categories, §11 Strategic Session Insights in HL template, Step 4b (fact capture) in `plan.md`, fact capture reminder in `resume.md`
+- Compilable Contract, Reference Format, Source Manifest glossary terms
+
+### Changed
+
+- **`knowledge.md` workflow rewrite** — 128→95 lines (-26%). Anti-patterns merged into Behavior Rules, Limits table replaced with config ref, Phase 4 renamed "Update" with WAIT gate
+- **`.tfw/README.md` stripped** — 353→138 lines. Pure philosophy paper. Removed: project structure tree, artifact types, lifecycle, scope budgets, workflows table. All → `conventions.md`/`glossary.md` refs
+- All adapters synced: `.agent/workflows/` — config, resume, plan, init
+
+### Removed
+
+- Anti-patterns section from `knowledge.md` — merged into Behavior Rules
+- Limits table from `knowledge.md` — replaced with inline ref to `PROJECT_CONFIG.yaml`
+- `.tfw/README.md` §Evolution — replaced with CHANGELOG link
+
+---
+
+## [0.7.1] — 2026-04-04
+
+### Added
+
+- **3 new README Values** — "Honesty Over Convincingness", "Structural Enforcement" (filesystem = state machine), "Naming Creates Behavior". Total: 5→8 values
+- **Design Rules subsection** in `conventions.md §11` — 4 rules: token density, inline enforcement, DNA/library, progressive disclosure
+
+### Changed
+
+- `KNOWLEDGE.md §0` — pruned 14→7 principles
+- `KNOWLEDGE.md §3` Legacy — pruned 35→13 items (removed all pre-TFW-22 resolved entries)
+- `KNOWLEDGE.md §4` Tech Stack — removed entirely (obvious from repo)
+- `knowledge/convention.md` — pruned 12→7 facts
+- `knowledge/process.md` — pruned 10→5 facts
+- `TECH_DEBT.md` — pruned 64→19 items (removed all resolved/accepted/obsolete entries)
+
+### Fixed
+
+- TD-64: KNOWLEDGE.md template referenced `## 5. Project Facts` instead of `## 4.`
+
+---
+
+## [0.7.0] — 2026-04-04
+
+<Warning>
+This release contains breaking changes to templates and roles.
+</Warning>
+
+### Added
+
+- **Researcher role** — 4th standalone role, extracted from Coordinator. Own `ROLE LOCK: RESEARCHER`. Permitted: RES, `research/` stage files. Forbidden: HL, TS, ONB, RF, REVIEW, code
+- **Research subfolder state machine** — `research/` subfolder with stage files (`briefing.md`, `gather.md`, `extract.md`, `challenge.md`). File existence = stage completion
+- **Resume Protocol (Step 0)** in `research/base.md` — check filesystem state → resume from first missing file. No chat history dependency
+- **4 research stage templates** in `.tfw/templates/research/` — briefing, gather, extract, challenge
+- **HL §1 Working Backwards** — Vision narrative, Impact field, stakeholder-perspective Quote (Amazon press release pattern)
+- **HL §10 "Why Not Just...?"** — internal FAQ section forcing alternatives consideration before research
+- `tfw.content_language` config — controls artifact content language (default: `en`). Template structure always English
+
+### Changed
+
+- **BREAKING:** All 5 core templates (HL, TS, RF, ONB, REVIEW) — pure English headings and field labels
+- **BREAKING:** HL template §1 restructured — generic "Vision" → Vision narrative + Impact + Quote
+- **BREAKING:** HL template §2 "Current State" — domain-agnostic ("system/process/environment")
+- **BREAKING:** HL template §5 "Definition of Done" — domain-agnostic checklist items
+- **BREAKING:** RES template — stage sections removed. RES = synthesis format. Stages live in `research/` subfolder
+- **BREAKING:** Coordinator no longer conducts research — hands off to Researcher via `/tfw-research`
+
+### Removed
+
+- "Coordinator (Research Mode)" overlay — replaced by standalone Researcher role
+- Stage sections in RES template — moved to `research/` subfolder files
+- Mixed RU/EN headings from all 5 templates
+
+---
+
+## [0.6.6] — 2026-04-04
+
+### Added
+
+- **Modular research architecture** — `research/{base,focused,deep}.md` replaces monolithic `research.md`
+  - `base.md`: core algorithm with OODA Stage Loop, Trust Protocol, Sufficiency Verdict
+  - `focused.md`: single-pass mode, generic criteria only
+  - `deep.md`: multi-loop hypothesis-driven mode with metacognitive check
+- **OODA Stage Loop** in research — Observe→Orient→Decide→Act with YAML-configurable `loops_per_stage` hard limit
+- **Sufficiency Verdict** — 2-level checkpoint criteria: generic (always) + mode-specific (from mode file)
+- **Trust Protocol** — 4-tier trust levels for user input (business→trust, tech→verify, numbers→empirical, experience→trust outcome)
+- `tfw.research.default_mode` and `tfw.research.modes.{focused,deep}` in `PROJECT_CONFIG.yaml`
+
+### Changed
+
+- **`plan.md` algorithm refactor** — 1213→795 words (-34%). Inline bloat replaced with ref-inside-step pattern. RESEARCH Gate strengthened
+- `PROJECT_CONFIG.yaml` workflow path: `research.md` → `research/base.md`
+
+### Removed
+
+- Monolithic `research.md` (1165 words) — replaced by `research/` directory
+- Inline bloat in `plan.md`: prerequisites list, scope budget table, status transitions diagram, anti-patterns block (~400 words)
+
+### Fixed
+
+- TD-54: `conventions.md` stale `research.md` paths updated to `research/base.md`
+- TD-55: `handoff.md` Role Lock table: `code` moved from Forbidden to Permitted Artifacts (executor writes code via handoff)
+
+---
+
+## [0.6.5] — 2026-04-03
+
+### Added
+
+- **Human-Only Test** in RF.md, REVIEW.md, RES.md templates — FC quality gate: "would this fact be unknown without the human saying it?"
+- **Human-Only Test** in `knowledge.md` Phase 3 Step 1 — consolidation-time reject criterion
+- **Quality bar** in RF.md §5 Observations + `handoff.md` — "report only issues that would bite the next developer"
+- **Quality filter** in `review.md` Step 3 — reject filler observations before promoting to TECH_DEBT.md
+
+### Changed
+
+- FC prompt reframed from "next agent's behavior" to "strategic knowledge — domain patterns, stakeholder priorities, business context" in RF.md, REVIEW.md, RES.md
+- `conventions.md §10.1` category examples expanded across all 9 categories
+
+---
+
+## [0.6.4] — 2026-04-03
+
+### Added
+
+- **`/tfw-config` workflow** — interactive config sync with edit/verify modes and Config Sync Registry (16 mapped entries across 3 categories)
+- Inline budget table (Pattern A) restored in `plan.md §Scope Budget per Phase` — 4-row compact table with defaults + config key
+- **Multi-phase subfolder convention** in `conventions.md §4` — master artifacts at root, phase artifacts in `PhaseA/`, `PhaseB/` subfolders
+- Config Sync Registry term in `glossary.md`
+
+### Changed
+
+- `TS.md` template L27 — budget line now shows inline defaults format
+- All adapters synced: `tfw-plan.md`, `tfw-research.md`, `tfw-knowledge.md`, `tfw-config.md`
+
+### Fixed
+
+- Agent enforcement of scope budgets — Pattern B "see config" broke compliance, restored inline values
+
+---
+
+## [0.6.3] — 2026-04-03
+
+### Added
+
+- Conversation history scan instruction in `knowledge.md` Phase 2: Gather — consolidator must review chat history, not just artifact Fact Candidates
+- Conversation history scan instruction in RF.md, REVIEW.md, RES.md templates
+
+### Fixed
+
+- `research.md` — restored conversation history scan instruction lost during TFW-21 compression
+
+---
+
+## [0.6.2] — 2026-04-03
+
+### Changed
+
+- `research.md` — compressed from 2397→1145 words (-52%), 319→160 lines (-50%). Removed: Example Flow, "Good/Bad research" sections, duplicate Anti-patterns block. Preserved: Research Mindset, 3 stages, Briefing Protocol, Closure Protocol, all 8 Hard Rules
+- `RES.md` template — enhanced stage checkpoints with Agent assessment, Depth check, Recommendation fields
+
+---
+
+## [0.6.1] — 2026-04-03
+
+### Added
+
+- Chat history scan instruction in `handoff.md`, `research.md`, `review.md` — agents must review conversation history before writing Fact Candidates. Human messages are the primary source of project knowledge
+
+---
+
+## [0.6.0] — 2026-04-03
+
+### Added
+
+- **`/tfw-knowledge` workflow** — 4-phase consolidation (Orient → Gather → Consolidate → Prune) with role lock, behavior rules, anti-patterns
+- `TOPIC_FILE.md` template — per-category knowledge files in `knowledge/` folder
+- `.tfw/knowledge_state.yaml` — consolidation state tracking (seq, date, stats)
+- `tfw.knowledge` section in `PROJECT_CONFIG.yaml` — 6 configurable parameters: interval, gate_mode, max_index_lines, max_index_facts_lines, max_facts_per_topic, max_topic_files
+- §6 Fact Candidates in RF.md template — mandatory section with quality filter and anti-patterns
+- Phase 0: Knowledge Gate Check in `plan.md` — configurable (hard/soft/off) enforcement before Phase 1
+
+---
+
+## [0.5.5] — 2026-04-03
+
+### Added
+
+- Coordinator Mindset section in `plan.md` — quality of planning > speed of pipeline, anti-rush guidance, RESEARCH as default
+- Hard Rule #8 in `research.md` — every stage must include at least one external action (web search, URL read, docs)
+
+### Changed
+
+- `plan.md` RESEARCH Gate — coordinator must be specific about what RESEARCH could reveal, frame as risk reduction
+- `research.md` Gather stage — "Autonomous search" replaced with "Search externally: how is this problem solved elsewhere?"
+
+---
+
+## [0.5.4] — 2026-04-01
+
+### Added
+
+- `tfw.statuses` registry in `PROJECT_CONFIG.yaml` — 9 status entries with `role` field
+- Concept Taxonomy in `glossary.md` — 5 formal definitions: Document Type, Template, Workflow, Adapter Command, Status
+- REJECT branching in `conventions.md` — user decides: HL_DRAFT / RES / TS_DRAFT
+
+### Changed
+
+- **BREAKING:** Pipeline statuses renamed: `🔵 HL` → `📝 HL_DRAFT`, `🟡 TS` → `🟡 TS_DRAFT` across all `.tfw/` files
+
+### Deprecated
+
+- `🔵 HL` and `🟡 TS` status names — replaced by `📝 HL_DRAFT` and `🟡 TS_DRAFT`
+
+---
+
+## [0.5.3] — 2026-04-01
+
+### Added
+
+- Briefing Protocol in `research.md` — mandatory entry with research plan, scope intent, guiding questions before stages
+- Closure Protocol in `research.md` — mandatory exit with HL update recommendations after sufficiency check
+- 3 new Hard Rules in `research.md` — briefing mandatory, closure mandatory, sufficiency check with specifics
+- HL update gate in `plan.md` Phase 3.5 — coordinator reads RES → updates HL → user confirms → TS
+
+---
+
+## [0.5.2] — 2026-03-31
+
+### Added
+
+- `init.md` workflow — AI-first project initialization (Discover → Interview → Knowledge → Setup → Verify)
+- `/tfw-init` slash command (Claude Code + Antigravity)
+- `.tfw/adapters/README.md` — adapter index and "How to Write a New Adapter"
+
+### Changed
+
+- `.tfw/init.md` — replaced 232-line manual guide with 20-line pointer to workflow
+
+---
+
+## [0.5.1] — 2026-03-30
+
+### Added
+
+- `tfw.scope_budgets` section in `PROJECT_CONFIG.yaml` — 4 configurable budget values
+- `tfw.workflows` section in `PROJECT_CONFIG.yaml` — 8 workflow entries
+- `tfw.research` section in `PROJECT_CONFIG.yaml` — 4 research limit entries
+
+### Changed
+
+- `tfw.templates` in `PROJECT_CONFIG.yaml` — completed to 8 entries
+- Scope budget values removed from docs — pure reference to `tfw.scope_budgets` config (Pattern B)
+
+---
+
+## [0.5.0] — 2026-03-30
+
+### Added
+
+- RESEARCH stage — optional structured investigation between HL and TS
+- `RES.md` template — Research Report artifact
+- `research.md` workflow — standalone and pipeline research
+- Phase 3.5 RESEARCH gate in `plan.md`
+- 🔬 RES status — pipeline now 8-status (RES optional)
+- Read-only AG mode definition in glossary
+- Claude Code adapter: `CLAUDE.md`, 9 slash commands in `.claude/commands/`
+
+---
+
+## [0.4.2] — 2026-03-12
+
+### Added
+
+- `tfw.upstream` field in `PROJECT_CONFIG.yaml` — configurable source URL for `tfw-update`
+- Step 0 (Fetch Upstream) and Step 9 (Cleanup) in `update.md`
+
+---
+
+## [0.4.1] — 2026-03-12
+
+### Added
+
+- `review.md` workflow — standalone review process with `ROLE LOCK: REVIEWER`
+- Reviewer role — coordinator in review-locked mode
+
+### Changed
+
+- `handoff.md` — removed Phase 4 (review), added executor STOP block
+- `conventions.md` — Role Lock table updated, `review.md` row added
+
+---
+
+## [0.4.0] — 2026-03-12
+
+### Added
+
+- `VERSION` file — machine-readable framework version
+- `CHANGELOG.md` — version history
+- `RELEASE.md` template — optional release context artifact
+- `tfw-release` workflow — canonical release process
+- `tfw-update` workflow — structured upgrade process for downstream projects
+
+### Changed
+
+- `PROJECT_CONFIG.yaml` — added `tfw.version` field
+
+---
+
+## [0.3.0] — 2026-03-02
+
+### Added
+
+- `KNOWLEDGE.md` template and `tfw-docs` workflow
+
+### Changed
+
+- Framework cleanup: removed STEPS.md, TASK.md, Summary Discipline
+- Root README restructured for public readership
+
+---
+
+## [0.2.0] — 2026-02-25
+
+### Added
+
+- `.tfw/` directory — tool-agnostic core (conventions, templates, workflows, adapters)
+- ONB and REVIEW artifact types
+- 7-status lifecycle with quality gates
+- 3 canonical workflows (plan, handoff, resume)
+- Scope budgets per phase
+- TECH_DEBT.md pipeline
+- Tool adapter pattern (Claude Code, Cursor, Antigravity)
+- `PROJECT_CONFIG.yaml`
+- Anti-patterns list
+
+### Removed
+
+- `AI_ENTRY_POINT.md`, `SUCCESS_CRITERIA.md`, `00_meta/` directory
+
+---
+
+## [0.1.0] — 2024
+
+### Added
+
+- Core concept: traces are more valuable than code
+- 4-file structure (AGENTS, README, TASK, STEPS)
+- Summary Discipline
+- Chat-to-project conversion pattern
+- CL/AG execution modes (informal)
+
+---
+
+## Versioning scheme
+
+TFW uses [Semantic Versioning](https://semver.org/):
+
+| Segment | Meaning |
+|---|---|
+| `MAJOR` | Incompatible changes to artifact formats or workflow protocol |
+| `MINOR` | New workflows, new config fields, new artifact types — backward compatible |
+| `PATCH` | Bug fixes, documentation corrections, adapter sync, template wording |
+
+<CardGroup cols={2}>
+  <Card title="PROJECT_CONFIG.yaml" href="/reference/project-config">
+    Full configuration reference including the `tfw.version` field.
+  </Card>
+  <Card title="Adapters overview" href="/adapters/overview">
+    How to use /tfw-update to sync adapter copies after a version bump.
+  </Card>
+</CardGroup>

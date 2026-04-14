@@ -1,0 +1,179 @@
+---
+title: "Execute a task with /tfw-handoff"
+description: "/tfw-handoff guides the Executor through onboarding, implementation, and writing an RF Result File. Learn the ONB → execute → RF flow and what the RF must contain."
+---
+
+`/tfw-handoff` is the task execution workflow. It belongs to the **Executor** role — the agent that reads an approved TS, asks blocking questions before starting, implements the changes, and writes an RF (Result File) documenting results. The Executor does not write HL, TS, REVIEW, or modify scope. That boundary is absolute.
+
+Run `/tfw-handoff` only after the Coordinator has produced an approved TS. The TS is the Executor's contract — every scope decision, constraint, and acceptance criterion comes from it.
+
+## Context loading order
+
+Before any onboarding work, the Executor loads context in this sequence:
+
+1. `AGENTS.md` — agent instructions
+2. `.tfw/conventions.md` — project conventions
+3. `.tfw/glossary.md` — terminology
+4. `KNOWLEDGE.md` — architecture, decisions, legacy (if it exists)
+5. **Master HL** — vision, design philosophy, architecture decisions
+6. **Phase HL** (if multi-phase) — phase-specific scope and context
+7. **TS file** — exact scope, DoD, constraints
+8. Related HL/TS/RF files referenced in the task
+9. Relevant code files listed in the TS
+
+Skipping the Master HL and jumping straight to code is a known anti-pattern. The HL provides the design philosophy that shapes every implementation decision.
+
+## Phase 1: Executor onboarding (ONB)
+
+<Steps>
+  <Step title="Read all context">
+    Read the HL, TS, referenced files, and relevant code. Understand the vision before touching any file.
+  </Step>
+
+  <Step title="Analyze the task">
+    Identify and document:
+
+    - Questions that need clarification — distinguish **blocking** (cannot proceed without answers) from non-blocking.
+    - Recommendations for improvement.
+    - Risks and edge cases not covered in the TS.
+    - Inconsistencies between HL/TS and the actual codebase.
+    - Missing information or incomplete specifications.
+    - Errors, gaps, or oversights in the spec.
+  </Step>
+
+  <Step title="Write the ONB file">
+    Create the ONB file using `.tfw/templates/ONB.md`. The ONB is a first-class artifact — not a scratch pad.
+
+    ```markdown
+    ## Questions (blocking — cannot proceed without answers)
+    | # | Question | Answer |
+    |---|----------|--------|
+
+    ## Recommendations (suggestions, not blocking)
+    1. ...
+
+    ## Risks Found (edge cases, potential issues not in TS)
+    1. ...
+
+    ## Inconsistencies with Code (spec vs reality)
+    1. ...
+    ```
+  </Step>
+
+  <Step title="Wait for approval">
+    Do **not** proceed until all blocking questions are resolved. The user answers directly in the ONB file. Update the Task Board status to `🟠 ONB`.
+  </Step>
+</Steps>
+
+## Phase 2: Execution
+
+<Steps>
+  <Step title="Update Task Board">
+    Change the task status to `🟢 RF` (in progress) in `README.md`.
+  </Step>
+
+  <Step title="Implement">
+    Follow the TS step by step:
+
+    - For code changes: write production-ready code, no placeholders.
+    - For CL tasks: present commands or SQL to the user and wait for execution.
+    - For AG tasks: create artifacts directly within the approved scope.
+
+    The Executor must not modify files outside the TS scope — even "obvious fixes." Any deviation must be documented in the RF deviations section.
+  </Step>
+
+  <Step title="Run tests and build gate">
+    Run tests as specified in the TS verification section. Then run the build or compile command from the TS verification section.
+
+    If the build fails → fix the issue **before** writing the RF. Never write an RF with a failing build.
+  </Step>
+</Steps>
+
+## Phase 3: Write the RF
+
+The RF (Result File) is the Executor's primary deliverable. Create it using `.tfw/templates/RF.md`.
+
+### Required RF sections
+
+| Section | Contents |
+|---------|----------|
+| What was done | Changes list with file paths |
+| Test results | Pass/fail status and output logs |
+| Known limitations or tech debt | Honest assessment of shortcuts |
+| Deviations from TS | Any deviation with justification |
+| Screenshots / logs | Applicable evidence |
+| Observations | Out-of-scope items noticed during work |
+| Fact Candidates | Strategic knowledge captured (see below) |
+
+### Observations section (mandatory)
+
+Executors must report anything they noticed but did **not** modify. This feeds the tech debt triage in the review phase.
+
+```markdown
+## Observations (out-of-scope, not modified)
+
+| # | File | Line(s) | Type | Description |
+|---|------|---------|------|-------------|
+| 1 | `example.tsx` | 42 | dead-code | Unused import `OldComponent` |
+| 2 | `utils.ts` | 15-20 | duplication | Same helper exists in 3 files |
+```
+
+Valid observation types: `dead-code`, `naming`, `todo`, `duplication`, `perf`, `security`, `style`, `missing-test`, `ux`.
+
+Only report issues that would affect the next developer. Do not generate observations just because the section exists. If nothing was found, write: `No observations.`
+
+### Fact Candidates section
+
+Before writing Fact Candidates, review the conversation history. The user's messages are the primary source — their decisions, priorities, concerns, and domain insights. Extract what informs decisions, not implementation details.
+
+<Tip>
+Capture strategic knowledge about the project — stakeholder priorities, domain patterns, business context, external constraints. These save the next agent from missing critical context that is not visible in the code.
+</Tip>
+
+## Hard stop
+
+After writing the RF, the Executor's work is done.
+
+<Warning>
+Do **not** proceed to review. Inform the user: "RF is complete. Start `/tfw-review` to review the results." Writing a REVIEW file as the Executor is a Role Lock violation.
+</Warning>
+
+## Scope budgets
+
+The TS is written against these limits. If an execution run risks exceeding them, the Executor writes the concern in the ONB rather than silently expanding scope.
+
+| Parameter | Default | Config key |
+|-----------|---------|------------|
+| Files per phase | 14 | `max_files_per_phase` |
+| New files per phase | 8 | `max_new_files` |
+| LOC per phase | 1,200 | `max_loc` |
+| Modified files | 12 | `max_modified_files` |
+
+## Multi-phase task flow
+
+For large tasks broken into phases, each phase runs a full independent cycle:
+
+```
+Coordinator: Master HL (approved)
+    │
+    ├── Phase A: Coordinator writes HL__PhaseA + TS__PhaseA
+    │   └── Executor: reads → ONB → executes → RF__PhaseA
+    │   └── Reviewer: /tfw-review → REVIEW__PhaseA
+    │
+    ├── Phase B: Coordinator writes HL__PhaseB + TS__PhaseB
+    │   └── Executor: reads → ONB → executes → RF__PhaseB
+    │   └── Reviewer: /tfw-review → REVIEW__PhaseB
+    │
+    └── ... repeat per phase
+```
+
+Each Phase Agent starts with the full context loading sequence above. The Coordinator maintains the Master HL for continuity across phases.
+
+<CardGroup cols={2}>
+  <Card title="Review completed work" icon="check-circle" href="/workflows/review">
+    After the RF is written, the Reviewer runs `/tfw-review` to check results against the TS.
+  </Card>
+  <Card title="Plan a task" icon="map" href="/workflows/plan">
+    The Coordinator produces the approved TS that the Executor receives here.
+  </Card>
+</CardGroup>

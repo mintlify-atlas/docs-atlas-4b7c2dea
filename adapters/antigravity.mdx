@@ -1,0 +1,171 @@
+---
+title: "Antigravity adapter: TFW as native skills"
+description: "TFW's Antigravity adapter integrates workflows as native skills via .agent/rules/tfw.md, exposing /tfw-plan, /tfw-handoff, and other commands through Antigravity's planning mode."
+---
+
+The Antigravity adapter integrates TFW through two mechanisms that map directly to how Antigravity structures its AI context. An always-on rule at `.agent/rules/tfw.md` ensures every Antigravity session starts with TFW context loaded. Workflow files copied to `.agent/workflows/` become native Antigravity skills — available as commands the agent can invoke by name. Together, these two components give Antigravity the full TFW workflow library without wrapping or abstracting it.
+
+## How the adapter works
+
+Antigravity uses two directories for AI context:
+
+- **`.agent/rules/`** — files loaded automatically in every chat session (always-on rules)
+- **`.agent/workflows/`** — files loaded on demand when the user invokes a skill or the agent triggers a workflow
+
+The TFW adapter populates both.
+
+**`.agent/rules/tfw.md`** is the always-on rule. It sets `trigger: always_on` in its frontmatter, which tells Antigravity to inject it into every conversation. The file contains the TFW philosophy references, the context-loading order, and the three conduct rules (no sycophancy, no placeholders, reply in the user's language). Like the other adapters, it does not duplicate any workflow logic — it references `.tfw/` as the canonical source.
+
+**`.agent/workflows/`** contains direct copies of the canonical TFW workflow files. Antigravity reads `.agent/workflows/` directly, so the files must be present there — references to `.tfw/workflows/` are not sufficient. Each workflow file is copied as-is, preserving the full role lock, mindset preamble, and step-by-step instructions.
+
+### Directory structure
+
+```
+project-root/
+├── AGENTS.md
+├── KNOWLEDGE.md
+├── .tfw/
+│   └── workflows/              # Canonical source — do not edit here
+    └── .agent/
+    ├── rules/
+    │   ├── tfw.md              # Always-on TFW rule
+    │   └── agents.md           # Project-specific AI role
+    └── workflows/
+        ├── tfw-init.md         # /tfw-init skill
+        ├── tfw-plan.md         # /tfw-plan skill
+        ├── tfw-research.md     # /tfw-research skill
+        ├── tfw-handoff.md      # /tfw-handoff skill
+        ├── tfw-review.md       # /tfw-review skill
+        ├── tfw-resume.md       # /tfw-resume skill
+        ├── tfw-docs.md         # /tfw-docs skill
+        ├── tfw-release.md      # /tfw-release skill
+        └── tfw-update.md       # /tfw-update skill
+```
+
+## Setup
+
+<Steps>
+  <Step title="Copy the TFW rule">
+    Create the `.agent/rules/` directory and copy the always-on rule template.
+
+    ```bash
+    mkdir -p .agent/rules
+    cp .tfw/adapters/antigravity/tfw-rules.md.template .agent/rules/tfw.md
+    ```
+
+    Replace `{version}` with the value from `.tfw/VERSION`. This rule loads TFW context in every Antigravity chat session automatically.
+  </Step>
+  <Step title="Copy the TFW workflows">
+    Create the `.agent/workflows/` directory and copy every canonical workflow.
+
+    ```bash
+    mkdir -p .agent/workflows
+    cp .tfw/workflows/init.md      .agent/workflows/tfw-init.md
+    cp .tfw/workflows/plan.md      .agent/workflows/tfw-plan.md
+    cp .tfw/workflows/research.md  .agent/workflows/tfw-research.md
+    cp .tfw/workflows/handoff.md   .agent/workflows/tfw-handoff.md
+    cp .tfw/workflows/review.md    .agent/workflows/tfw-review.md
+    cp .tfw/workflows/resume.md    .agent/workflows/tfw-resume.md
+    cp .tfw/workflows/docs.md      .agent/workflows/tfw-docs.md
+    cp .tfw/workflows/release.md   .agent/workflows/tfw-release.md
+    cp .tfw/workflows/update.md    .agent/workflows/tfw-update.md
+    ```
+
+    Antigravity reads `.agent/workflows/` directly — the files must be present, not referenced.
+  </Step>
+  <Step title="Add project-specific rules (optional)">
+    You can place additional always-on rules alongside the TFW rule. Common additions include a project-specific agent role file and domain safety rules.
+
+    ```
+    .agent/rules/
+    ├── tfw.md              # TFW (from step 1)
+    ├── agents.md           # Your AI role and mission
+    └── safety-rules.md     # Domain-specific safety rules
+    ```
+  </Step>
+  <Step title="Add your own workflows (optional)">
+    TFW workflows coexist with any other Antigravity workflows you define for your project.
+
+    ```
+    .agent/workflows/
+    ├── tfw-plan.md         # TFW workflows (from step 2)
+    ├── ...
+    ├── deploy-api.md       # Your custom deploy workflow
+    └── build-project.md    # Your custom build workflow
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Running `/tfw-init` from Claude Code handles the full Antigravity adapter setup automatically. If you're adding the Antigravity adapter to a project that's already initialized with another tool, ask your agent to "set up the Antigravity adapter following `.tfw/adapters/antigravity/README.md`".
+</Tip>
+
+## What the always-on rule includes
+
+The `.agent/rules/tfw.md` file is derived from `tfw-rules.md.template` in the adapter directory. It has `trigger: always_on` in its frontmatter and contains three sections:
+
+**TFW references** — pointers to the canonical sources the agent must read:
+- Philosophy and lifecycle: `.tfw/README.md`
+- Conventions: `.tfw/conventions.md`
+- Glossary: `.tfw/glossary.md`
+- Templates: `.tfw/templates/`
+- Config: `.tfw/PROJECT_CONFIG.yaml`
+
+**Context-loading order** — the strict sequence for new sessions:
+1. `AGENTS.md` — AI role and mission
+2. `.agent/rules/conventions.md` or `.tfw/conventions.md` — formal rules
+3. `.agent/rules/glossary.md` or `.tfw/glossary.md` — terminology
+4. `KNOWLEDGE.md` (if present) — architecture and verified facts
+5. Relevant HL, TS, or RF files for the current task
+
+**Conduct rules** — three mandatory rules for every session:
+- No sycophancy — be direct, precise, concrete
+- No placeholders — all code and text must be production-ready
+- Language — reply in the user's latest message language
+
+## TFW workflows as native Antigravity skills
+
+When workflow files are present in `.agent/workflows/`, Antigravity can invoke them directly in its planning mode. Each TFW workflow file carries its full role lock, mindset declaration, and step sequence — so the Antigravity agent knows exactly what role it is playing and what it is and is not permitted to do.
+
+The workflow-to-skill mapping mirrors the Claude Code slash commands:
+
+| Skill | Canonical workflow | Role | Purpose |
+|-------|--------------------|------|---------|
+| `tfw-init` | `.tfw/workflows/init.md` | Coordinator | Initialize TFW in a project |
+| `tfw-plan` | `.tfw/workflows/plan.md` | Coordinator | Research, write HL, run RESEARCH gate, write TS |
+| `tfw-research` | `.tfw/workflows/research/base.md` | Researcher | Structured investigation — pipeline or standalone |
+| `tfw-handoff` | `.tfw/workflows/handoff.md` | Executor | ONB, implement, write RF |
+| `tfw-review` | `.tfw/workflows/review.md` | Reviewer | Review RF, write REVIEW, record verdict |
+| `tfw-resume` | `.tfw/workflows/resume.md` | Coordinator | Status matrix, decide next phase |
+| `tfw-docs` | `.tfw/workflows/docs.md` | Coordinator | Update `KNOWLEDGE.md` and `TECH_DEBT.md` |
+| `tfw-release` | `.tfw/workflows/release.md` | Coordinator | Version bump, CHANGELOG, tag |
+| `tfw-update` | `.tfw/workflows/update.md` | Coordinator | Fetch upstream, compare versions, sync adapters |
+
+## Keeping workflows in sync
+
+Because Antigravity requires physical copies of workflow files in `.agent/workflows/`, those copies can drift from the canonical source in `.tfw/workflows/` after a TFW upgrade. When you run `/tfw-update` (from Claude Code or another tool), the update workflow re-copies all workflow files to `.agent/workflows/` as part of the adapter sync step. You can also re-sync manually:
+
+```bash
+cp .tfw/workflows/init.md      .agent/workflows/tfw-init.md
+cp .tfw/workflows/plan.md      .agent/workflows/tfw-plan.md
+cp .tfw/workflows/research.md  .agent/workflows/tfw-research.md
+cp .tfw/workflows/handoff.md   .agent/workflows/tfw-handoff.md
+cp .tfw/workflows/review.md    .agent/workflows/tfw-review.md
+cp .tfw/workflows/resume.md    .agent/workflows/tfw-resume.md
+cp .tfw/workflows/docs.md      .agent/workflows/tfw-docs.md
+cp .tfw/workflows/release.md   .agent/workflows/tfw-release.md
+cp .tfw/workflows/update.md    .agent/workflows/tfw-update.md
+```
+
+<Warning>
+  Do not edit files in `.agent/workflows/` directly. They are copies of the canonical workflows in `.tfw/workflows/`. Any edits will be overwritten the next time `/tfw-update` runs. If you need to customize a workflow, edit the source in `.tfw/workflows/` instead.
+</Warning>
+
+## Key references
+
+- `.agent/rules/tfw.md` — always-on adapter rule
+- `.agent/workflows/` — TFW workflow copies (native Antigravity skills)
+- `.tfw/adapters/antigravity/README.md` — setup guide in the starter
+- `.tfw/adapters/antigravity/tfw-rules.md.template` — source template for the rule
+- `.tfw/README.md` — TFW philosophy and task lifecycle
+- `.tfw/conventions.md` — all formal rules and role lock protocol

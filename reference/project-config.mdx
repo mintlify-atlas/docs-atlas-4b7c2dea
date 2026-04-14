@@ -1,0 +1,287 @@
+---
+title: "PROJECT_CONFIG.yaml: TFW configuration reference"
+description: "PROJECT_CONFIG.yaml is TFW's single source of truth for project settings — task prefix, scope budgets, template paths, workflow paths, research limits, and knowledge settings."
+---
+
+`PROJECT_CONFIG.yaml` lives at `.tfw/PROJECT_CONFIG.yaml` in every TFW project. It is the single source of truth for all configurable values. Workflows read from it directly; agents must not hardcode values that exist here. When you change a value here, run `/tfw-config` to propagate it to all inline locations.
+
+## Complete configuration file
+
+```yaml
+project:
+  name: my-project
+  repo: user/my-project
+  branch: main
+
+tfw:
+  version: "0.8.1"            # Installed TFW version (update via tfw-update)
+  upstream: "https://github.com/saubakirov/trace-first-starter"  # Source for tfw-update
+  task_prefix: TFW          # Short prefix for task IDs (e.g., PROJ, APP, SVC)
+  id_format: "{prefix}-{seq}"
+  initial_seq: 12
+  content_language: en      # Language for filled artifact content (en, ru, etc.)
+
+  scope_budgets:
+    max_files_per_phase: 14
+    max_new_files: 8
+    max_loc: 1200
+    max_modified_files: 12
+
+  templates:
+    hl: .tfw/templates/HL.md
+    ts: .tfw/templates/TS.md
+    res: .tfw/templates/RES.md
+    rf: .tfw/templates/RF.md
+    onb: .tfw/templates/ONB.md
+    review: .tfw/templates/REVIEW.md
+    knowledge: .tfw/templates/KNOWLEDGE.md
+    release: .tfw/templates/RELEASE.md
+
+  workflows:
+    plan: .tfw/workflows/plan.md
+    research: .tfw/workflows/research/base.md
+    handoff: .tfw/workflows/handoff.md
+    review: .tfw/workflows/review.md
+    resume: .tfw/workflows/resume.md
+    docs: .tfw/workflows/docs.md
+    release: .tfw/workflows/release.md
+    update: .tfw/workflows/update.md
+    init: .tfw/workflows/init.md
+    knowledge: .tfw/workflows/knowledge.md
+    config: .tfw/workflows/config.md
+
+  research:
+    max_web_queries_per_stage: 5
+    max_files_per_stage: 15
+    max_questions_per_turn: 3
+    max_passes: 3
+    min_iterations: 2           # Minimum research iterations before TS (coordinator gate)
+    default_mode: focused
+    modes:
+      focused:
+        loops_per_stage: 1
+        verify_user_tech_claims: true
+      deep:
+        loops_per_stage: 3
+        verify_user_tech_claims: true
+        require_counter_evidence: true
+
+  knowledge:
+    interval: 5
+    gate_mode: hard          # hard / soft / off
+    max_index_lines: 200
+    max_index_facts_lines: 30
+    max_facts_per_topic: 50
+    max_topic_files: 8
+
+  statuses:
+    - id: TODO
+      emoji: "⬜"
+      description: "Task registered, work not started"
+    - id: HL_DRAFT
+      emoji: "📝"
+      description: "HL being drafted or discussed"
+      role: coordinator
+    - id: RES
+      emoji: "🔬"
+      description: "Research in progress (optional)"
+      role: researcher
+    - id: TS_DRAFT
+      emoji: "🟡"
+      description: "TS written, awaiting approval"
+      role: coordinator
+    - id: ONB
+      emoji: "🟠"
+      description: "Executor onboarding"
+      role: executor
+    - id: RF
+      emoji: "🟢"
+      description: "Execution complete, RF written"
+      role: executor
+    - id: REV
+      emoji: "🔍"
+      description: "Review in progress"
+      role: reviewer
+    - id: KNW
+      emoji: "📚"
+      description: "Knowledge capture (tfw-docs + tfw-knowledge)"
+      role: coordinator
+    - id: DONE
+      emoji: "✅"
+      description: "Task closed"
+    - id: BLOCKED
+      emoji: "❌"
+      description: "Blocked by dependency"
+
+build:
+  lint: echo "configure your lint command"
+  test: echo "configure your test command"
+  verify: echo "configure your verify command"
+```
+
+---
+
+## `project` section
+
+Top-level project identity fields. These do not affect TFW behavior directly — they are metadata used in documentation generation and adapter templates.
+
+| Field | Type | Example | Description |
+|---|---|---|---|
+| `project.name` | string | `my-project` | Human-readable project name. |
+| `project.repo` | string | `user/my-project` | GitHub repository path (owner/repo). |
+| `project.branch` | string | `main` | Default branch name. |
+
+---
+
+## `tfw` section
+
+Core TFW framework settings.
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `tfw.version` | string | `"0.8.1"` | Installed TFW framework version. Updated automatically via `/tfw-update`. Do not edit manually. |
+| `tfw.upstream` | string | `https://github.com/saubakirov/trace-first-starter` | Source URL for `/tfw-update` to fetch new versions from. |
+| `tfw.task_prefix` | string | `TFW` | Short uppercase prefix for all task IDs in this project. Examples: `PROJ`, `APP`, `SVC`. |
+| `tfw.id_format` | string | `{prefix}-{seq}` | Template for task ID generation. |
+| `tfw.initial_seq` | integer | `12` | Starting sequence number for new task IDs. |
+| `tfw.content_language` | string | `en` | Language for filled artifact content. Template structure (headings, labels) is always English. Options: `en`, `ru`, or any language code. |
+
+---
+
+## `tfw.scope_budgets` section
+
+Per-phase limits for the Executor. When any budget is exceeded, the phase must be split. Values are referenced inline in `plan.md` and `conventions.md` — do not remove them from the YAML.
+
+| Field | Default | Description |
+|---|---|---|
+| `max_files_per_phase` | `14` | Maximum total files touched in one phase. Keeps the agent's full context of changed files intact. |
+| `max_new_files` | `8` | Maximum new files created in one phase. Limits the blast radius of new abstractions. |
+| `max_loc` | `1200` | Maximum lines of code changed in one phase. Keeps the diff reviewable in a single pass. |
+| `max_modified_files` | `12` | Maximum existing files modified in one phase. Prevents scattered, hard-to-review diffs. |
+
+---
+
+## `tfw.templates` section
+
+Paths to canonical artifact templates. These paths are used by workflows when instructing agents which template to follow.
+
+| Field | Default path | Artifact |
+|---|---|---|
+| `hl` | `.tfw/templates/HL.md` | High Level context artifact |
+| `ts` | `.tfw/templates/TS.md` | Task Spec |
+| `res` | `.tfw/templates/RES.md` | Research Report |
+| `rf` | `.tfw/templates/RF.md` | Result File |
+| `onb` | `.tfw/templates/ONB.md` | Onboarding Report |
+| `review` | `.tfw/templates/REVIEW.md` | Review Report |
+| `knowledge` | `.tfw/templates/KNOWLEDGE.md` | Project knowledge index |
+| `release` | `.tfw/templates/RELEASE.md` | Release strategy artifact |
+
+---
+
+## `tfw.workflows` section
+
+Paths to canonical workflow files. Used by adapters and agents to locate the correct workflow definition.
+
+| Field | Default path | Trigger command |
+|---|---|---|
+| `plan` | `.tfw/workflows/plan.md` | `/tfw-plan` |
+| `research` | `.tfw/workflows/research/base.md` | `/tfw-research` |
+| `handoff` | `.tfw/workflows/handoff.md` | `/tfw-handoff` |
+| `review` | `.tfw/workflows/review.md` | `/tfw-review` |
+| `resume` | `.tfw/workflows/resume.md` | `/tfw-resume` |
+| `docs` | `.tfw/workflows/docs.md` | `/tfw-docs` |
+| `release` | `.tfw/workflows/release.md` | `/tfw-release` |
+| `update` | `.tfw/workflows/update.md` | `/tfw-update` |
+| `init` | `.tfw/workflows/init.md` | `/tfw-init` |
+| `knowledge` | `.tfw/workflows/knowledge.md` | `/tfw-knowledge` |
+| `config` | `.tfw/workflows/config.md` | `/tfw-config` |
+
+---
+
+## `tfw.research` section
+
+Controls the research workflow's depth, speed, and iteration requirements.
+
+| Field | Default | Description |
+|---|---|---|
+| `max_web_queries_per_stage` | `5` | Maximum web queries the researcher can issue in a single stage (Gather, Extract, or Challenge). |
+| `max_files_per_stage` | `15` | Maximum project files read in a single stage. |
+| `max_questions_per_turn` | `3` | Maximum clarifying questions the researcher may ask the user per turn. |
+| `max_passes` | `3` | Maximum full passes (each covering all three stages) in a single research run. |
+| `min_iterations` | `2` | Minimum number of research iterations before the Coordinator may write a TS. The Coordinator gate in `plan.md` Step 6c enforces this. Can be overridden per task in `iterations.yaml`. |
+| `default_mode` | `focused` | Default research mode. Options: `focused` or `deep`. |
+
+### Research modes
+
+| Mode | `loops_per_stage` | `verify_user_tech_claims` | `require_counter_evidence` |
+|---|---|---|---|
+| `focused` | `1` | `true` | — |
+| `deep` | `3` | `true` | `true` |
+
+- **focused**: Single loop per stage. Verifies user technical claims. Suitable for most tasks.
+- **deep**: Three loops per stage. Verifies user technical claims. Also requires the researcher to actively seek counter-evidence before concluding.
+
+---
+
+## `tfw.knowledge` section
+
+Controls the knowledge consolidation workflow and the Knowledge Gate checkpoint.
+
+| Field | Default | Description |
+|---|---|---|
+| `interval` | `5` | Number of tasks completed before the Knowledge Gate triggers in `plan.md` Phase 0. |
+| `gate_mode` | `hard` | How the Knowledge Gate behaves when the interval is reached. Options: `hard` (stop — coordinator must justify proceeding without consolidation), `soft` (reminder only — coordinator may proceed), `off` (skip gate entirely). |
+| `max_index_lines` | `200` | Maximum lines for the `KNOWLEDGE.md` index sections. Prevents unbounded growth. |
+| `max_index_facts_lines` | `30` | Maximum lines for the compact facts index in `KNOWLEDGE.md §4`. |
+| `max_facts_per_topic` | `50` | Maximum verified facts in a single topic file in `knowledge/`. When exceeded, prune low-value entries. |
+| `max_topic_files` | `8` | Maximum number of topic files in the `knowledge/` folder. |
+
+---
+
+## `tfw.statuses` section
+
+The canonical task status registry. Each status has an `id`, `emoji`, `description`, and optionally a `role` indicating which role is active during that status.
+
+| id | Emoji | Description | Role |
+|---|---|---|---|
+| `TODO` | ⬜ | Task registered, work not started | — |
+| `HL_DRAFT` | 📝 | HL being drafted or discussed | coordinator |
+| `RES` | 🔬 | Research in progress (optional) | researcher |
+| `TS_DRAFT` | 🟡 | TS written, awaiting approval | coordinator |
+| `ONB` | 🟠 | Executor onboarding | executor |
+| `RF` | 🟢 | Execution complete, RF written | executor |
+| `REV` | 🔍 | Review in progress | reviewer |
+| `KNW` | 📚 | Knowledge capture (tfw-docs + tfw-knowledge) | coordinator |
+| `DONE` | ✅ | Task closed | — |
+| `BLOCKED` | ❌ | Blocked by dependency | — |
+
+---
+
+## `build` section
+
+Project-specific build commands. Replace the placeholder `echo` values with your actual commands. These are used by the Executor in the handoff workflow to verify that the build passes before writing the RF.
+
+| Field | Default | Description |
+|---|---|---|
+| `build.lint` | `echo "configure your lint command"` | Command to run the linter. |
+| `build.test` | `echo "configure your test command"` | Command to run the test suite. |
+| `build.verify` | `echo "configure your verify command"` | Command to run a full verification pass (lint + test + any other checks). |
+
+---
+
+## Changing configuration
+
+To change a value and propagate it everywhere it appears inline, run the `/tfw-config` workflow. It reads the Config Sync Registry — a table in `config.md` that maps each `PROJECT_CONFIG.yaml` key to all inline display locations — and proposes updates.
+
+<Warning>
+Do not edit inline values in workflow files directly without running `/tfw-config`. Out-of-sync inline values cause agents to enforce the wrong limits.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Conventions reference" href="/reference/conventions">
+    Scope budgets, status flows, role locks, and anti-patterns.
+  </Card>
+  <Card title="Changelog" href="/reference/changelog">
+    Version history showing when each config field was introduced.
+  </Card>
+</CardGroup>

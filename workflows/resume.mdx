@@ -1,0 +1,120 @@
+---
+title: "Resume interrupted work with /tfw-resume"
+description: "/tfw-resume reconstructs task state from the Task Board and existing artifacts, then determines the correct next action — no re-explanation needed between sessions."
+---
+
+`/tfw-resume` is the phase status bootstrap workflow. It belongs to the **Coordinator** role. Use it when a session has ended, a team member has changed, or it is unclear what the next step should be on a multi-phase task. The Coordinator cannot write ONB, RF, or code in this workflow — its only outputs are a status matrix and, after user confirmation, the Phase HL + TS for the next phase.
+
+The core value of `/tfw-resume` is that **any agent in a new session can read the traces and resume** without requiring re-explanation from the user. The task folder is the source of truth; the Task Board in `README.md` is the index.
+
+## When to use it
+
+- A session ended mid-task and you are starting fresh.
+- A new team member or agent is taking over a multi-phase task.
+- It is unclear which phase is next and what state the task is in.
+- A REVISE verdict was issued and you need to confirm the scope before re-executing.
+
+## Steps
+
+<Steps>
+  <Step title="Locate the task">
+    The user specifies the task folder path (e.g., `tasks/PROJ-3__admin_ui/`). List the folder contents — identify the Master HL, Master TS, and all phase artifacts.
+
+    Read the **Master HL** and extract:
+    - Vision (§1) — one-liner
+    - Phase list (§4) — all planned phases with priorities
+    - Design principles (§7) — non-negotiable rules
+    - Strategic Insights (§11) — check for gaps from the previous session
+
+    Read the **Master TS** (if it exists) and extract:
+    - Phase definitions and scope budgets
+    - Quality contract (anti-patterns, style rules)
+    - Verification plan
+  </Step>
+
+  <Step title="Build the Phase Status Matrix">
+    Scan the folder for `HL__Phase*`, `TS__Phase*`, `ONB__Phase*`, `RF__Phase*`, and `REVIEW__Phase*` files. Build and present the matrix:
+
+    ```markdown
+    ## Phase Status Matrix
+
+    | Phase | Description | HL | TS | ONB | RF | REVIEW | Status |
+    |-------|-------------|----|----|-----|----|----|--------|
+    | A | Backend: API endpoints | ✅ | ✅ | ✅ | ✅ | ✅ APPROVED | ✅ Done |
+    | B | Frontend: components | ❌ | ❌ | ❌ | ❌ | ❌ | ⬜ Next |
+    | C | Integration tests | ❌ | ❌ | ❌ | ❌ | ❌ | ⬜ TODO |
+    ```
+
+    If the last completed phase has a REVIEW file, read it and extract the verdict, key lessons, and tech debt items collected. If a REVISE verdict exists for any phase, flag it as needing re-execution.
+
+    Read `TECH_DEBT.md` to extract accumulated items across all phases.
+  </Step>
+
+  <Step title="Report and decide">
+    Present a structured status report to the user:
+
+    ```markdown
+    ## Resume Report — {PREFIX}-{N}
+
+    **Task**: [title from Master HL]
+    **Progress**: X of Y phases complete
+
+    ### Completed
+    - Phase A: [one-line summary] ✅ [REVIEW verdict]
+    - Phase B: [one-line summary] ✅ [REVIEW verdict]
+
+    ### Lessons from Last Phase
+    - [extracted from REVIEW]
+
+    ### Tech Debt Accumulated
+    - [summary from TECH_DEBT.md]
+
+    ### Next Phase
+    **Phase C**: [description from Master HL]
+    - Scope: [N files, brief]
+    - Dependencies: [any blockers from previous phases]
+    ```
+
+    Ask the user: **"Start planning Phase C?"** or **"Which phase to work on?"**
+
+    <Note>
+    Never assume phase order is fixed. The user may want to skip, reorder, or revisit a phase. Present the options and wait for explicit direction.
+    </Note>
+  </Step>
+
+  <Step title="Plan and hand off the next phase">
+    After the user confirms which phase to work on:
+
+    1. Use the large-task path from the plan workflow (Step 7) to write the Phase HL + TS for the chosen phase.
+    2. Present the HL + TS for user approval.
+    3. After approval → use `/tfw-handoff` to delegate execution to the Executor agent.
+    4. After the RF is written → use `/tfw-review` for the review.
+  </Step>
+</Steps>
+
+## How the status matrix maps to next actions
+
+The status matrix drives the decision about what to do next. The Coordinator reads artifact existence — not status flags — to determine ground truth.
+
+| Condition | Next action |
+|-----------|-------------|
+| No HL for next phase | Write Phase HL (plan workflow, large-task path) |
+| HL exists, no TS | Write Phase TS |
+| TS approved, no ONB | Start `/tfw-handoff` |
+| ONB complete, no RF | Continue execution (or re-start `/tfw-handoff`) |
+| RF exists, no REVIEW | Start `/tfw-review` |
+| REVIEW: REVISE | Re-start `/tfw-handoff` with documented fixes |
+| REVIEW: APPROVED, no next phase | Task complete |
+
+## Role boundary
+
+In this workflow, the Coordinator is permitted to read all artifacts, build the status matrix, and write Phase HL + TS. Execution, ONB writing, RF writing, and code are forbidden.
+
+<CardGroup cols={2}>
+  <Card title="Plan a task" icon="map" href="/workflows/plan">
+    After confirming the next phase, the Coordinator follows the plan workflow to write HL and TS.
+  </Card>
+  <Card title="Execute a task" icon="play" href="/workflows/handoff">
+    After Phase HL + TS are approved, hand off to the Executor with `/tfw-handoff`.
+  </Card>
+</CardGroup>

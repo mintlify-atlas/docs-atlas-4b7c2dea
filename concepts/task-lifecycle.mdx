@@ -1,0 +1,143 @@
+---
+title: "The TFW task lifecycle: from TODO to DONE"
+description: "TFW tasks flow through 9 statuses — TODO, HL_DRAFT, RES, TS_DRAFT, ONB, RF, REV, KNW, DONE — each producing a specific artifact that becomes permanent project memory."
+---
+
+Every TFW task travels a deterministic path from idea to closed trace. Each step produces a specific artifact that becomes part of the project's permanent memory — so any agent or human can resume work in a new session without losing context. The lifecycle is the engine that turns work into knowledge.
+
+## The pipeline
+
+The full status flow, as defined in `conventions.md §5`:
+
+```
+⬜ TODO → 📝 HL_DRAFT → 🔬 RES → 🟡 TS_DRAFT → 🟠 ONB → (develop) → 🟢 RF → 🔍 REV → 📚 KNW → ✅ DONE
+                                                                          │
+                                                                ┌─────────┴─────────┐
+                                                                🔄 REVISE          ❌ REJECT
+                                                             (back to dev)    (user decides)
+                  (skip: 📝 HL_DRAFT ··· 🟡 TS_DRAFT)       ↓
+                                                         ❌ BLOCKED
+```
+
+## Status reference
+
+| Status | Emoji | Meaning | Artifact produced | Role |
+|--------|-------|---------|-------------------|------|
+| TODO | ⬜ | Task planned, work not started | — | — |
+| HL_DRAFT | 📝 | HL being drafted, awaiting approval | HL (High Level) | Coordinator |
+| RES | 🔬 | Research in progress | RES (Research Report) | Researcher |
+| TS_DRAFT | 🟡 | TS written, awaiting approval for execution | TS (Task Spec) | Coordinator |
+| ONB | 🟠 | Executor studying the task | ONB (Onboarding Report) | Executor |
+| RF | 🟢 | Execution complete, RF written | RF (Result File) | Executor |
+| REV | 🔍 | Reviewer checking RF | REVIEW (Review Report) | Reviewer |
+| KNW | 📚 | Knowledge capture applied | Updated `knowledge/` topic files | Coordinator |
+| DONE | ✅ | Task closed, all traces updated | — | — |
+| BLOCKED | ❌ | Blocked by a dependency | — | — |
+
+<Note>
+**RES is optional.** The Coordinator decides whether a task warrants a research phase. If the scope is well-understood, the pipeline moves directly from HL_DRAFT to TS_DRAFT.
+
+**KNW is optional.** After a REVIEW verdict of APPROVE, the Reviewer can pre-mark both `tfw-docs` and `tfw-knowledge` as `N/A` for trivial tasks — in which case the task transitions directly to DONE without a separate KNW step.
+</Note>
+
+## The main flow
+
+<Steps>
+  <Step title="TODO — Register the task">
+    A new row is added to the Task Board in `README.md` with status ⬜ TODO. The task has a unique ID (`{PREFIX}-{N}`), a short title, and a description. No work begins until this entry exists.
+  </Step>
+
+  <Step title="HL_DRAFT — Frame the problem">
+    The Coordinator writes a High Level (HL) artifact following `.tfw/templates/HL.md`. The HL captures vision, current state, target state, phases, risks, and a Definition of Done. The human reviews and approves the HL before the pipeline advances. No TS is written without an approved HL.
+  </Step>
+
+  <Step title="RES — Investigate (optional)">
+    When the HL contains open hypotheses or unknowns that would change the approach if resolved differently, the Coordinator launches the research workflow. The Researcher follows the OODA loop across Briefing → Gather → Extract → Challenge stages, producing a RES artifact. At minimum two iterations are required by default (`tfw.research.min_iterations: 2`). The Coordinator gates the TS on research completion.
+  </Step>
+
+  <Step title="TS_DRAFT — Specify the work">
+    The Coordinator writes a Task Spec (TS) following `.tfw/templates/TS.md`. The TS is self-contained: objective, in-scope / out-of-scope list, affected files table, detailed steps, and acceptance criteria. The human approves the TS. The Coordinator then issues a Hard Stop and instructs the human to start `/tfw-handoff`.
+  </Step>
+
+  <Step title="ONB — Onboard the executor">
+    The Executor reads the HL and TS, then writes an Onboarding Report (ONB) following `.tfw/templates/ONB.md`. The ONB surfaces the Executor's understanding, blocking questions, recommendations, risks, and any inconsistencies between the TS and the actual codebase. The Coordinator (or human) answers blocking questions directly in the ONB before execution begins.
+  </Step>
+
+  <Step title="Execute — Implement the work">
+    With all blocking questions resolved, the Executor implements the changes defined in the TS. In AG (Autonomous) mode the Executor makes incremental commits. In CL (Chat Loop) mode the human executes commands. The Executor stays strictly within TS scope — any out-of-scope observation is recorded in the RF's Observations table, not acted on.
+  </Step>
+
+  <Step title="RF — Deliver results">
+    The Executor writes a Result File (RF) following `.tfw/templates/RF.md` only after build and lint pass. The RF records: what was done, key decisions, acceptance criteria status, verification results, out-of-scope observations, Fact Candidates, Strategic Insights, and Diagrams. The RF is the primary source of truth for what happened in the phase. The Executor issues a Hard Stop and instructs the human to start `/tfw-review`.
+  </Step>
+
+  <Step title="REV — Review the RF">
+    The Reviewer reads the RF and TS, then works through the 9-point checklist and issues one of three verdicts. The Reviewer writes a REVIEW artifact following `.tfw/templates/REVIEW.md`. The Reviewer also triages executor Observations into `TECH_DEBT.md`.
+  </Step>
+
+  <Step title="KNW — Capture knowledge (optional)">
+    After an APPROVE verdict the Coordinator runs `/tfw-docs` (updates `KNOWLEDGE.md` and `TECH_DEBT.md`) and `/tfw-knowledge` (consolidates Fact Candidates into `knowledge/` topic files). When both markers in REVIEW §4 are set to `Applied` or `N/A`, the task transitions to DONE.
+  </Step>
+
+  <Step title="DONE — Close the task">
+    The Task Board is updated to ✅ DONE. All traces are permanent. A new agent opening the project reads the board and the artifact chain (HL → TS → RF → REVIEW) to understand exactly what was done, why, and what was rejected.
+  </Step>
+</Steps>
+
+## Review verdict paths
+
+After the Reviewer issues a verdict, the pipeline branches in one of three directions:
+
+| Verdict | Emoji | Next step |
+|---------|-------|-----------|
+| APPROVE | ✅ | → 📚 KNW (run `tfw-docs` + `tfw-knowledge`), then ✅ DONE |
+| REVISE | 🔄 | → Back to execution (same task, same TS). Executor addresses specific issues from the REVIEW and produces a new RF. |
+| REJECT | ❌ | → 🛑 User decides: (a) 📝 HL_DRAFT — rework the HL from scratch, (b) 🔬 RES — commission new research, (c) 🟡 TS_DRAFT — rewrite the TS only |
+
+A REJECT means the fundamental framing was wrong — the task needs rethinking, not just fixing. A REVISE means the implementation was close but specific items need correction.
+
+## Scope budgets per phase
+
+TFW enforces per-phase scope limits to keep changes reviewable in a single pass and to prevent AI agents from exceeding their reliable context window. The defaults are configured in `.tfw/PROJECT_CONFIG.yaml` under `tfw.scope_budgets`:
+
+| Parameter | Default | Rationale | Config key |
+|-----------|---------|-----------|------------|
+| Files per phase | 14 | Agent maintains full context of all changed files | `max_files_per_phase` |
+| New files per phase | 8 | Limits blast radius of new abstractions | `max_new_files` |
+| Lines of code per phase | 1200 | Keeps changes reviewable in one pass | `max_loc` |
+| Modified files | 12 | Prevents scattered, hard-to-review diffs | `max_modified_files` |
+
+When a phase would exceed these limits, the correct response is to split it into two phases — not to raise the limit.
+
+## Execution modes
+
+TFW supports two execution modes, declared in the TS and respected by the Executor:
+
+<AccordionGroup>
+  <Accordion title="CL — Chat Loop (default)">
+    The AI proposes steps and the human approves or executes external actions. The AI does **not** run external commands, write files, or commit code without explicit human approval. This is the safe default for all tasks touching external systems, sensitive configuration, or irreversible operations.
+
+    In CL mode, the AI must never claim something was "run" or "tested" outside the session context.
+  </Accordion>
+
+  <Accordion title="AG — Autonomous (explicit request only)">
+    The AI works independently within the file system, staying within the scope approved in the TS. It makes incremental commits and stops when it encounters a situation not covered by the TS. Autonomous mode is only activated by an explicit user request — it is never the default.
+
+    In AG mode the Executor still produces an ONB before starting and an RF when done.
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Artifact types" href="/concepts/artifact-types">
+    What each artifact contains and how it is structured
+  </Card>
+  <Card title="Roles in TFW" href="/concepts/roles">
+    Who writes what and the Role Lock protocol
+  </Card>
+  <Card title="Knowledge capture" href="/concepts/knowledge-capture">
+    How Fact Candidates become verified project knowledge
+  </Card>
+  <Card title="Conventions reference" href="/reference/conventions">
+    Full conventions including file naming rules
+  </Card>
+</CardGroup>

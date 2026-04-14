@@ -1,0 +1,199 @@
+---
+title: "Knowledge capture: Fact Candidates to verified facts"
+description: "TFW captures project knowledge automatically as a byproduct of work. Learn how Fact Candidates flow from artifacts into verified topic files through the consolidation workflow."
+---
+
+One of TFW's core design goals is that knowledge should be generated as a byproduct of working — not written separately, not maintained separately, and not dependent on anyone remembering to document things. Fact Candidates are the mechanism that makes this possible. They are raw observations recorded during normal task work, flowing from RF, REVIEW, and RES artifacts into verified topic files through a structured consolidation process.
+
+## The knowledge pipeline
+
+Fact Candidates originate in three artifact types during normal execution, then flow through consolidation into permanent project knowledge:
+
+```
+RF §6 Fact Candidates    ─┐
+RES Fact Candidates       ├─→ /tfw-knowledge ─→ knowledge/{category}.md ─→ KNOWLEDGE.md §4
+REVIEW §5 Fact Candidates ─┘    consolidation       (verified facts)         (index)
+```
+
+The `/tfw-knowledge` consolidation workflow runs either manually or at the Knowledge Gate checkpoint during planning (every `interval` tasks, configurable). The output is updated topic files in `knowledge/` and an updated index in `KNOWLEDGE.md §4`.
+
+## The consolidation workflow
+
+<Steps>
+  <Step title="Phase 1: Orient">
+    The Coordinator reads `.tfw/knowledge_state.yaml` to find the `last_consolidation_seq` and compute which tasks need scanning. It lists current topic files with fact counts and reads `conventions.md §10.1` to identify which canonical categories have topic files and which are gaps.
+
+    An orientation summary is presented to the user, including category coverage gaps — categories with no topic file yet.
+
+    **What the Coordinator reads:**
+    - `.tfw/knowledge_state.yaml` — current state and last consolidation sequence
+    - `KNOWLEDGE.md` — current knowledge index
+    - `knowledge/*.md` — all existing topic files
+    - `tfw.knowledge` in `PROJECT_CONFIG.yaml` — limits (interval, gate_mode, max_facts_per_topic, max_topic_files)
+  </Step>
+
+  <Step title="Phase 2: Gather">
+    The Coordinator scans all artifacts from tasks since `last_consolidation_seq`, collecting candidates from three sources:
+
+    - **HL §11 Strategic Insights (Planning)** — coordinator-captured signals from planning sessions
+    - **RF §7 Strategic Insights (Execution)** — executor-captured signals from live sessions (if exists)
+    - **RF §6, REVIEW §5, RES Fact Candidates** — standard Fact Candidate sections
+
+    The Coordinator also reviews the current session's conversation history for facts from user messages that were not captured in any artifact.
+
+    A table of gathered candidates is presented to the user before any consolidation begins.
+
+    <Note>
+    Strategic Insights (§11/§7) are pre-filtered signals with higher priority than standard Fact Candidates. They have already passed the Human-Only Test during artifact writing. Standard Fact Candidates mix strategic and technical content — the Human-Only Test is applied more strictly during consolidation.
+    </Note>
+
+    🛑 **The workflow pauses here.** The user reviews candidates before consolidation proceeds.
+  </Step>
+
+  <Step title="Phase 3: Consolidate">
+    For each gathered candidate, the Coordinator applies four checks in sequence:
+
+    1. **Human-Only Test** — would this fact be unknown without the human saying it? If an agent can discover it by reading code, running commands, or checking documentation → reject.
+    2. **Deduplication** — does this fact already exist in a topic file? If yes → skip.
+    3. **Contradiction check** — does this fact contradict an existing verified fact? If yes → flag and ask the user. The Coordinator never auto-resolves contradictions.
+    4. **Verification** — if ≥2 independent sources confirm the fact → ✅ verified. If only 1 source → present to user for confirmation.
+
+    Facts that pass all checks are written to `knowledge/{category}.md` using the topic file template. If a category has no topic file yet, one is created from `.tfw/templates/TOPIC_FILE.md`.
+
+    After writing, the source artifact gets a marker added:
+
+    ```
+    > fact-candidates: processed YYYY-MM-DD
+    ```
+
+    Consolidation results are presented to the user before writing.
+
+    🛑 **The workflow pauses here.** The user approves changes before any files are written.
+  </Step>
+
+  <Step title="Phase 4: Update (Prune)">
+    The Coordinator reviews existing verified facts for staleness — facts whose source artifact is more than 20 tasks old or has been deleted are flagged for the user. Facts are never auto-deleted.
+
+    The Coordinator then:
+    1. Updates `KNOWLEDGE.md §4` (Project Facts) with updated category counts and links to topic files
+    2. Updates `.tfw/knowledge_state.yaml` with the new consolidation state
+
+    🛑 **The workflow pauses here.** The user approves before final write.
+  </Step>
+</Steps>
+
+## Fact categories
+
+TFW defines nine canonical fact categories. The list is open — agents can add custom categories when none of the canonical ones fit.
+
+| Category | Scope | Examples |
+|----------|-------|----------|
+| `environment` | Where the work lives | servers, tools, platforms, classrooms, labs, hosting |
+| `process` | How work gets done | schedules, approvals, reporting cadence, grading cycles |
+| `stakeholder` | Who needs what | priorities, pain points, expectations, quotes, key decisions |
+| `constraint` | What limits exist | contractual obligations, regulatory deadlines, resource caps, technical limits |
+| `convention` | Agreed standards | naming, style, format, language, tone |
+| `domain` | Subject matter knowledge | revenue patterns, client segments, market metrics, business rules |
+| `context` | Background shaping decisions | market conditions, competitive landscape, regulatory changes, prior decisions |
+| `risk` | Known dangers | client concentration, market dependency, knowledge silos, fragile dependencies |
+| `philosophy` | Values, principles, vision | design rationale, methodology beliefs, north star decisions, "why we do it this way" |
+
+## The Knowledge Gate
+
+The Knowledge Gate is a consolidation checkpoint that runs at the start of every planning cycle (`/tfw-plan` Phase 0). It checks whether the number of tasks since `last_consolidation_seq` has reached the configured `interval`. The gate has three modes:
+
+| Mode | Behavior |
+|------|----------|
+| `hard` | Stop planning, require consolidation before proceeding. Coordinator must provide justification to skip. |
+| `soft` | Reminder only — consolidation is recommended but planning can continue. |
+| `off` | Gate is disabled. No consolidation checkpoint. |
+
+The default gate mode is `hard` (`tfw.knowledge.gate_mode: hard` in `PROJECT_CONFIG.yaml`). This ensures knowledge does not accumulate indefinitely without consolidation.
+
+## knowledge_state.yaml
+
+The `.tfw/knowledge_state.yaml` file tracks consolidation state across sessions. It is updated at the end of every `/tfw-knowledge` run.
+
+```yaml
+# Knowledge consolidation state — updated by /tfw-knowledge
+# Configuration (interval, gate_mode, limits) → see tfw.knowledge in PROJECT_CONFIG.yaml
+knowledge:
+  last_consolidation_seq: 32
+  last_consolidation_date: 2026-04-10
+  stats:
+    total_facts: 55
+    verified: 18
+    unverified: 37
+    rejected: 48
+    candidates_processed: 124
+    sources_scanned: 63
+```
+
+The `last_consolidation_seq` value is what the Orient phase uses to determine which tasks need scanning. It corresponds to the `tfw.initial_seq` counter in `PROJECT_CONFIG.yaml`.
+
+## The KNW status
+
+After a REVIEW verdict of APPROVE, the task enters the 📚 KNW status. This status signals that two documentation workflows must be applied before the task can close:
+
+- **`tfw-docs`** — updates `KNOWLEDGE.md` and `TECH_DEBT.md` via the `/tfw-docs` workflow
+- **`tfw-knowledge`** — consolidates Fact Candidates via the `/tfw-knowledge` workflow
+
+Both are tracked in REVIEW §4 (Traces Updated):
+
+```markdown
+- [ ] tfw-docs: {Applied — updated Sections X, Y / N/A (minor)}
+- [ ] tfw-knowledge: {Applied / N/A / Deferred to batch}
+```
+
+When both markers are set to `Applied` or `N/A`, the task transitions to ✅ DONE. For trivial tasks, the Reviewer can pre-mark both as `N/A` during review — skipping the KNW step entirely.
+
+## Configuration
+
+Knowledge consolidation behavior is configured in `.tfw/PROJECT_CONFIG.yaml` under `tfw.knowledge`:
+
+```yaml
+tfw:
+  knowledge:
+    interval: 5              # Run consolidation every N tasks
+    gate_mode: hard          # hard / soft / off
+    max_index_lines: 200     # Maximum lines in KNOWLEDGE.md §4 index
+    max_index_facts_lines: 30
+    max_facts_per_topic: 50  # Maximum verified facts per topic file
+    max_topic_files: 8       # Maximum number of topic files in knowledge/
+```
+
+## Knowledge infrastructure
+
+| File / Path | Purpose |
+|-------------|---------|
+| `knowledge/` | Project root folder for topic files (one per category) |
+| `knowledge/{category}.md` | Topic file — verified facts for one category. Template: `.tfw/templates/TOPIC_FILE.md` |
+| `KNOWLEDGE.md` | Project knowledge index — architecture, decisions, legacy, §4 links to topic files |
+| `.tfw/knowledge_state.yaml` | Consolidation tracking: last seq, date, statistics |
+| `.tfw/workflows/knowledge.md` | 4-phase consolidation workflow (Orient → Gather → Consolidate → Prune) |
+
+Topic files use a simple structure — a table of verified facts with source references that the build-time compiler resolves into hyperlinks:
+
+```markdown
+# Knowledge: stakeholder
+
+| # | Fact | Verified | Source(s) | Added |
+|---|------|----------|-----------|-------|
+| 1 | Primary output is a knowledge graph, not a docs site | ✅ | RF TFW-7 §6, HL-TFW-5 §11 | 2026-03-10 |
+| 2 | Close as MVP, don't stretch phases | ✅ | User, planning session TFW-9 | 2026-03-15 |
+```
+
+<CardGroup cols={2}>
+  <Card title="Task lifecycle" href="/concepts/task-lifecycle">
+    Where KNW fits in the 9-status pipeline
+  </Card>
+  <Card title="Artifact types" href="/concepts/artifact-types">
+    The Fact Candidates section in RF, RES, and REVIEW
+  </Card>
+  <Card title="Knowledge workflow" href="/workflows/knowledge">
+    The /tfw-knowledge workflow in detail
+  </Card>
+  <Card title="Project config reference" href="/reference/project-config">
+    All knowledge configuration keys
+  </Card>
+</CardGroup>

@@ -1,0 +1,179 @@
+---
+title: "Run structured research with /tfw-research"
+description: "/tfw-research runs a structured investigation through Gather, Extract, and Challenge stages using the OODA loop. The Researcher role produces a RES synthesis artifact."
+---
+
+`/tfw-research` is the structured investigation workflow. It belongs to the **Researcher** role — a dedicated agent that writes RES artifacts and research stage files only. The Researcher does not write HL, TS, ONB, RF, REVIEW, or code. After the final RES is written, the Researcher stops and instructs the team to continue with `/tfw-plan`.
+
+Research typically runs between HL approval and TS writing (pipeline mode), but can also run standalone by creating its own task folder with a `🔬 RES` Task Board entry.
+
+## The filesystem-as-state-machine
+
+TFW research uses the filesystem to represent state. Each stage produces a file. **File existence equals stage completion.** If `gather.md` exists, the Gather stage is complete. If `challenge.md` exists, the Challenge stage is complete. This means any new session can resume exactly where the previous one left off by checking which files exist in the current iteration's subfolder.
+
+Stage files accumulate — they are never deleted or overwritten. Each `researchN/` folder is a trace of reasoning. Deleting it deletes the reasoning.
+
+## Iteration detection and multi-iteration research
+
+Before doing any work, the Researcher checks for an `iterations.yaml` file at the task root.
+
+- If `iterations.yaml` exists, read it to find the first entry with `status: pending`. That is the current iteration.
+- Count existing `researchN/` folders to determine the highest iteration number completed.
+- If the current iteration is greater than 1, read all predecessor RES files for context before starting.
+
+<Info>
+**Resuming within an iteration:** Check the current iteration's subfolder for existing stage files. Resume from the first missing stage. If the RES file for this iteration already exists, this iteration is complete — do not repeat it.
+</Info>
+
+### Subfolder naming
+
+| Iteration | Stage files folder | RES file location |
+|-----------|--------------------|-------------------|
+| 1 | `research/` | `RES__{PREFIX}-{N}__{title}.md` |
+| 2 | `research2/` | `RES__iter2__{title}.md` |
+| 3 | `research3/` | `RES__iter3__{title}.md` |
+| N | `researchN/` | `RES__iterN__{title}.md` |
+
+### iterations.yaml format
+
+The Coordinator creates this file before launching the first research iteration. The Researcher reads it; the Coordinator owns and updates it.
+
+```yaml
+task_id: PROJ-N
+title: research focus description
+min_iterations: 2       # from tfw.research.min_iterations or coordinator override
+max_iterations: 5       # soft ceiling
+iterations:
+  - number: 1
+    focus: "initial investigation of H1-H3"
+    hypotheses: [H1, H2, H3]
+    status: complete     # pending | in_progress | complete
+    res_file: RES__PROJ-N__title.md
+  - number: 2
+    focus: "deepen findings from iter 1, test H4"
+    hypotheses: [H4]
+    status: pending
+    res_file: RES__iter2__title.md
+```
+
+## Research modes
+
+The Researcher reads `tfw.research.default_mode` from `PROJECT_CONFIG.yaml` and recommends it to the user. The user may switch modes before the stages begin.
+
+| Mode | `loops_per_stage` | When to use |
+|------|-------------------|-------------|
+| **Focused** | 1 | Narrow scope, well-defined hypotheses, low uncertainty |
+| **Deep** | 3 | Broad scope, high uncertainty, multiple competing hypotheses |
+
+`loops_per_stage` controls how many OODA loop iterations run per stage. More loops produce more evidence but increase session length.
+
+## Steps
+
+<Steps>
+  <Step title="Resume and iteration detection">
+    If resuming (not a fresh start), re-read this workflow. Check for `iterations.yaml`, determine the current iteration number, and identify the first pending entry. If iteration > 1, read predecessor RES files for context. Check which stage files exist to determine where to resume.
+  </Step>
+
+  <Step title="Load context">
+    Verify that AGENTS.md, `conventions.md`, `glossary.md`, KNOWLEDGE.md, and the Master HL are loaded. Read relevant code files. This context is required before any stage work begins.
+  </Step>
+
+  <Step title="Select mode">
+    Read `tfw.research.default_mode` from `PROJECT_CONFIG.yaml`. Present: "Recommend [mode]. Reason: [specific]. Switch? [focused/deep]". **Wait** for user confirmation. Then load the corresponding mode file.
+  </Step>
+
+  <Step title="Create research subfolder">
+    - Iteration 1: create `research/` in the task directory.
+    - Iteration N > 1: create `researchN/` (e.g., `research2/`, `research3/`).
+
+    Copy templates from `templates/research/`. Fill the Goal from HL §1 Vision.
+
+    For iteration 2+, the Briefing **must** reference predecessor RES decisions (D-numbers with summaries), open threads from the predecessor's Iteration Status block, and any new hypotheses or user-injected directions since the last iteration.
+  </Step>
+
+  <Step title="Briefing protocol">
+    Write `briefing.md` (or `researchN/briefing.md`) using `templates/research/briefing.md`. The Briefing contains:
+
+    1. Research Plan — 3–5 bullets per stage.
+    2. Hypotheses from HL §10 (in pipeline mode).
+    3. Scope intent — what is in and out of scope.
+    4. Guiding questions — maximum 3.
+
+    **Wait** for user review before proceeding to stages.
+  </Step>
+
+  <Step title="Run the three stages (Gather → Extract → Challenge)">
+    All three stages must be covered. Order is flexible. Each stage uses its own template from `templates/research/`. Each stage runs the OODA loop up to `loops_per_stage` times.
+
+    ### OODA Stage Loop
+
+    **OBSERVE:** Gather data — web search, file read, codebase scan, user input.
+
+    **ORIENT:** "Does this confirm or challenge what I thought?"
+
+    **DECIDE — Sufficiency Verdict:**
+    - Is an external source used?
+    - Is the Briefing gap closed?
+    - Are mode-specific checks satisfied?
+
+    If ALL checks pass → Stage Checkpoint. If not all pass and loops remain → OBSERVE again. If no loops remain → report partial findings and exit the stage.
+
+    **ACT:** Update the stage file. Formulate the next action.
+
+    ### Stage Checkpoint
+
+    At the end of each stage:
+    1. Present findings and questions (maximum 3).
+    2. Update the stage file — mark `Stage complete: YES`.
+    3. Recommend: close stage or dig deeper.
+
+    **Wait** before advancing to the next stage.
+  </Step>
+
+  <Step title="Synthesis — write RES">
+    After all three stages are complete:
+
+    1. Read all stage files (briefing, gather, extract, challenge).
+    2. Write `RES__*.md` using `templates/RES.md`. Synthesize — do not copy-paste from stage files.
+    3. Include HL Update Recommendations (table).
+    4. Review conversation history first, then write Fact Candidates.
+    5. Write the mandatory **Iteration Status block**: gaps, open threads, recommendation (SUFFICIENT / MORE NEEDED).
+    6. Write Conclusion (one paragraph).
+
+    **STOP.** "Research iteration N complete. Continue with `/tfw-plan` to review iterations and decide next step."
+  </Step>
+</Steps>
+
+## Trust levels
+
+| Input type | Trust level | Behavior |
+|------------|-------------|----------|
+| Business / domain | Trust as-is | Clarify only |
+| Technical approach | Verify | Cross-check externally |
+| Numbers / claims | Empirical | Test or find evidence |
+| "I tried this" | Trust outcome | Verify the reason |
+
+## Limits
+
+Values are defaults from `tfw.research` in `PROJECT_CONFIG.yaml`.
+
+| Parameter | Default | Type | Config key |
+|-----------|---------|------|------------|
+| Web queries per stage | 5 | Soft | `max_web_queries_per_stage` |
+| Project files per stage | 15 | Soft | `max_files_per_stage` |
+| Questions per turn | 3 | Hard | `max_questions_per_turn` |
+| Max passes | 3 | Soft | `max_passes` |
+| Min iterations | 2 | Hard | `min_iterations` |
+
+## Hard stops
+
+The Researcher must **never** proceed past writing the final RES file. Writing HL, TS, or code after the RES is a Role Lock violation. After writing RES, the Researcher instructs the team to continue with `/tfw-plan` and stops.
+
+<CardGroup cols={2}>
+  <Card title="Plan a task" icon="map" href="/workflows/plan">
+    The Coordinator launched this research from `/tfw-plan`. After the RES is complete, return to `/tfw-plan` to apply findings and write the TS.
+  </Card>
+  <Card title="Artifact types" icon="file" href="/concepts/artifact-types">
+    Learn more about the RES artifact format and the Fact Candidates section.
+  </Card>
+</CardGroup>

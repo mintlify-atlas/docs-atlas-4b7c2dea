@@ -1,0 +1,124 @@
+---
+title: "Cursor adapter: TFW conventions in Cursor rules"
+description: "TFW's Cursor adapter adds workflow conventions through an MDC rules file at .cursor/rules/tfw.mdc, giving Cursor's AI assistant the full TFW context automatically."
+---
+
+The Cursor adapter integrates TFW into Cursor through a single MDC rules file. Cursor reads files in the `.cursor/rules/` directory and injects their contents into the AI assistant's context automatically. The TFW adapter takes advantage of this by placing a concise rules file at `.cursor/rules/tfw.mdc` with `alwaysApply: true`, which means Cursor loads it in every chat session without any manual setup or session-opening prompt.
+
+## How the adapter works
+
+The adapter is a single file: `.cursor/rules/tfw.mdc`. It is generated from the template at `.tfw/adapters/cursor/tfw.mdc.template` during project initialization.
+
+The file has two parts. The YAML frontmatter configures how Cursor handles the rule:
+
+```yaml
+---
+description: "TFW {version} — Trace-First Workflow conventions, lifecycle, and rules for this project"
+alwaysApply: true
+---
+```
+
+`alwaysApply: true` is the key setting. It tells Cursor to inject this rule into every conversation — the user never has to remember to reference it manually.
+
+The body of the file is intentionally minimal. It does not duplicate any TFW logic. Instead, it points Cursor to the canonical sources in `.tfw/`:
+
+```markdown
+# TFW {version}
+
+This project follows **Trace-First Workflow {version}**.
+
+- Philosophy & lifecycle: `.tfw/README.md`
+- Conventions: `.tfw/conventions.md`
+- Glossary: `.tfw/glossary.md`
+- Templates: `.tfw/templates/` (see `tfw.templates` in `.tfw/PROJECT_CONFIG.yaml`)
+- Workflows: `.tfw/workflows/` (see `tfw.workflows` in `.tfw/PROJECT_CONFIG.yaml`)
+- Config: `.tfw/PROJECT_CONFIG.yaml`
+```
+
+It also sets the context-loading order and conduct rules that apply to every session.
+
+### Directory structure
+
+```
+project-root/
+├── AGENTS.md
+├── KNOWLEDGE.md
+├── .tfw/
+│   ├── conventions.md
+│   ├── glossary.md
+│   └── workflows/
+└── .cursor/
+    └── rules/
+        └── tfw.mdc          # TFW adapter — loaded automatically by Cursor
+```
+
+## Setup
+
+<Steps>
+  <Step title="Create the .cursor/rules/ directory">
+    ```bash
+    mkdir -p .cursor/rules
+    ```
+  </Step>
+  <Step title="Copy the template">
+    ```bash
+    cp .tfw/adapters/cursor/tfw.mdc.template .cursor/rules/tfw.mdc
+    ```
+  </Step>
+  <Step title="Replace the version placeholder">
+    Open `.cursor/rules/tfw.mdc` and replace `{version}` with the value from `.tfw/VERSION`.
+
+    ```bash
+    VERSION=$(cat .tfw/VERSION)
+    sed -i "s/{version}/$VERSION/g" .cursor/rules/tfw.mdc
+    ```
+
+    The `tfw-update` workflow re-copies this template and refreshes the version automatically on future TFW upgrades.
+  </Step>
+  <Step title="Verify">
+    Open your project in Cursor. In a new chat, the TFW rules file is already active — Cursor's AI assistant will be aware of the TFW conventions, context-loading order, and conduct rules without any additional prompting.
+  </Step>
+</Steps>
+
+<Tip>
+  Running `/tfw-init` (via Claude Code or another tool) handles this setup automatically. If you're setting up the Cursor adapter on a project that already has the Claude Code adapter active, the init workflow will copy and configure the Cursor rules file for you.
+</Tip>
+
+## What the rules file includes
+
+The Cursor rules file provides Cursor's AI assistant with the following context in every session:
+
+**TFW references.** Direct pointers to `.tfw/README.md` (philosophy and lifecycle), `.tfw/conventions.md` (formal rules), `.tfw/glossary.md` (terminology), `.tfw/templates/` (canonical artifact templates), `.tfw/workflows/` (all process workflows), and `.tfw/PROJECT_CONFIG.yaml` (project parameters like scope budgets and task prefix).
+
+**Context-loading order.** The rule specifies the strict sequence the agent must follow when starting a new session:
+
+1. `AGENTS.md` — the AI role and mission for this specific project
+2. `.tfw/conventions.md` — formal rules, naming conventions, scope budgets
+3. `.tfw/glossary.md` — TFW terminology
+4. `KNOWLEDGE.md` (if present) — architecture decisions and verified project knowledge
+5. Relevant HL, TS, or RF files for the current task
+
+**Conduct rules.** Three non-negotiable rules injected into every Cursor session:
+- No sycophancy — be direct, precise, and concrete
+- No placeholders — all code and text must be production-ready
+- Language — reply in the user's latest message language
+
+## How Cursor reads it
+
+Cursor processes `.cursor/rules/` files as standing context for its AI assistant. Because the TFW rules file sets `alwaysApply: true`, it is included in every conversation in the project — equivalent to having the TFW context permanently prepended to every chat message. The agent reads `.tfw/` files on demand as it follows workflows, but the entry point and conduct rules are always present.
+
+<Note>
+  The Cursor adapter does not register slash commands the way the Claude Code adapter does. To run a TFW workflow in Cursor, ask the AI assistant to "follow `.tfw/workflows/plan.md`" or describe the task in natural language — the always-active rules file ensures the agent already understands TFW's structure.
+</Note>
+
+## Keeping the adapter in sync
+
+When TFW is upgraded via the `/tfw-update` workflow (from Claude Code or any other tool), the update process re-copies adapter templates from the upstream starter. This refreshes the version string in the `tfw.mdc` file and picks up any changes to the template's structure. You don't need to manually update `.cursor/rules/tfw.mdc` after a TFW version upgrade.
+
+## Key references
+
+- `.cursor/rules/tfw.mdc` — the adapter file (auto-loaded by Cursor)
+- `.tfw/adapters/cursor/tfw.mdc.template` — the source template
+- `.tfw/README.md` — TFW philosophy and task lifecycle
+- `.tfw/conventions.md` — all formal rules and anti-patterns
+- `.tfw/PROJECT_CONFIG.yaml` — project parameters

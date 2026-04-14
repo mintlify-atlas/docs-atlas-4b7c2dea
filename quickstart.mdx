@@ -1,80 +1,121 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Get started with Trace-First Workflow"
+description: "Add TFW to a new or existing project in minutes. Copy one prompt to your AI agent and follow the initialization workflow to capture your first task trace."
 ---
 
-## Get started in three steps
+TFW requires no installation — it's a methodology, not a package. Setup means copying a single prompt to your AI agent (Claude Code, Cursor, or any chat). The agent clones the starter, reads the conventions, and initializes the project for you.
 
-Get your documentation site running locally and make your first customization.
+## Choose your starting point
 
-### Step 1: Set up your local environment
+<Tabs>
+  <Tab title="New project">
+    Copy this prompt into your AI agent:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```text
+    I want to start a new project using Trace-First Workflow (TFW) —
+    a methodology that preserves decisions, reasoning, and knowledge across AI sessions.
+    Clone https://github.com/saubakirov/trace-first-starter to a temp directory,
+    then read .tfw/quickstart.md and follow it step by step.
+    My project is about: <describe your project in a few sentences>
+    ```
+  </Tab>
+  <Tab title="Existing project">
+    Copy this prompt into your AI agent:
 
-### Step 2: Deploy your changes
+    ```text
+    I want to add Trace-First Workflow (TFW) to this existing project.
+    Clone https://github.com/saubakirov/trace-first-starter to a temp directory,
+    copy the .tfw/ directory into my project root, then delete the temp clone.
+    Then read .tfw/quickstart.md and follow it step by step.
+    My project is about: <describe your project>
+    ```
+  </Tab>
+  <Tab title="Already set up">
+    Copy this prompt into your AI agent to start your first task:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```text
+    Read AGENTS.md for project context.
+    This project uses TFW slash commands for all workflows:
+    /tfw-plan — create a new task
+    /tfw-handoff — execute an approved task
+    /tfw-review — review completed work
+    /tfw-resume — continue interrupted work
+    Start with: /tfw-plan
+    Task: <describe what you want to do>
+    ```
+  </Tab>
+</Tabs>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## What happens during initialization
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Agent clones the starter">
+    Your AI agent clones `https://github.com/saubakirov/trace-first-starter` and copies the `.tfw/` directory into your project root. This is the tool-agnostic TFW core.
+  </Step>
+  <Step title="Agent reads the conventions">
+    The agent reads `.tfw/quickstart.md`, `.tfw/README.md`, `.tfw/glossary.md`, and `.tfw/conventions.md` in order to understand the lifecycle, roles, and artifact types.
+  </Step>
+  <Step title="Agent runs /tfw-init">
+    The initialization workflow (`/tfw-init`) guides the agent through project discovery — it interviews you, sets up `AGENTS.md`, `KNOWLEDGE.md`, `README.md` with a Task Board, and configures `.tfw/PROJECT_CONFIG.yaml` for your project.
+  </Step>
+  <Step title="Agent sets up your tool adapter">
+    Based on your tool (Claude Code, Cursor, Antigravity), the agent installs the appropriate adapter so TFW slash commands are available in your environment.
+  </Step>
+  <Step title="Start your first task">
+    Run `/tfw-plan` with a task description. The Coordinator creates an HL artifact, optionally runs research, writes a Task Spec, and hands off to execution.
+  </Step>
+</Steps>
 
-### Step 3: Go live
+## Slash commands reference
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+Once initialized, these commands drive the entire TFW lifecycle:
 
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+| Command | Role | Purpose |
+|---------|------|---------|
+| `/tfw-plan` | Coordinator | Create HL + TS for a new task |
+| `/tfw-research` | Researcher | Run structured investigation, produce RES artifact |
+| `/tfw-handoff` | Executor | Onboard, implement, write RF Result File |
+| `/tfw-review` | Reviewer | 9-point checklist review, issue APPROVE/REVISE/REJECT verdict |
+| `/tfw-resume` | Coordinator | Resume interrupted work from any checkpoint |
+| `/tfw-knowledge` | Coordinator | Consolidate Fact Candidates into verified knowledge |
+| `/tfw-docs` | Coordinator | Update KNOWLEDGE.md and TECH_DEBT.md after task close |
+| `/tfw-release` | Coordinator | Cut a versioned release with changelog |
+| `/tfw-update` | Coordinator | Upgrade `.tfw/` from upstream starter |
+| `/tfw-init` | Coordinator | Initialize TFW in a new or existing project |
+| `/tfw-config` | Coordinator | Change config and propagate to inline values |
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  You only need to read `.tfw/README.md` — the philosophy takes about 5 minutes. Your AI agent handles everything else.
 </Note>
+
+## Frequently asked questions
+
+<AccordionGroup>
+  <Accordion title="Do I need to read the documentation?">
+    No. The `.tfw/` files are designed for AI agents. You only need the [philosophy](/philosophy) — it explains why TFW works and takes about 5 minutes.
+  </Accordion>
+  <Accordion title="Which AI tools work with TFW?">
+    Any tool that can read files. Adapters exist for Claude Code, Cursor, and Antigravity — your agent sets them up during init. For plain chat (ChatGPT, etc.), have the agent read `.tfw/README.md` directly.
+  </Accordion>
+  <Accordion title="Can I use TFW for non-code work?">
+    Yes. TFW is about structuring decisions, not writing code. The same lifecycle works for analytics, writing, education, business processes, and academic research.
+  </Accordion>
+  <Accordion title="How is TFW different from Confluence or Notion?">
+    Confluence and Notion are knowledge *storage* tools — they hold what someone decides to write. TFW is a knowledge *generation* methodology — it captures decisions, reasoning, and alternatives as a byproduct of working. You don't document your decisions; your decisions document themselves.
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="Philosophy" icon="lightbulb" href="/philosophy">
+    Read the thesis behind TFW — why traces matter more than code.
+  </Card>
+  <Card title="Task lifecycle" icon="arrows-spin" href="/concepts/task-lifecycle">
+    Understand the 9-status pipeline and what each stage produces.
+  </Card>
+  <Card title="Tool adapters" icon="plug" href="/adapters/overview">
+    Set up TFW with Claude Code, Cursor, or Antigravity.
+  </Card>
+  <Card title="Workflows" icon="diagram-project" href="/workflows/plan">
+    Deep-dive into /tfw-plan, /tfw-handoff, /tfw-review and more.
+  </Card>
+</CardGroup>

@@ -1,0 +1,129 @@
+---
+title: "Review completed work with /tfw-review"
+description: "/tfw-review runs the Reviewer through a 9-point checklist of the RF artifact, triages tech debt to TECH_DEBT.md, and issues a verdict: APPROVE, REVISE, or REJECT."
+---
+
+`/tfw-review` is the task review workflow. It belongs to the **Reviewer** role — the Coordinator operating in a review-locked mode. The Reviewer reads the RF and TS, applies a 9-point checklist, triages tech debt, and issues one of three formal verdicts. The Reviewer does not write code, ONB, RF, or modify HL/TS under any circumstances.
+
+The review must be a **separate session or agent** from the one that produced the RF. The Reviewer and Executor cannot be the same session.
+
+## Context loading order
+
+Before starting the review, load context in this sequence:
+
+1. `AGENTS.md` — agent instructions
+2. `.tfw/conventions.md` — project conventions
+3. `.tfw/glossary.md` — terminology
+4. `KNOWLEDGE.md` — architecture, decisions, legacy (if it exists)
+5. **Master HL** — vision, design philosophy, architecture decisions
+6. **Phase HL** (if multi-phase) — phase-specific scope and context
+7. **TS file** — exact scope, DoD, constraints
+8. **RF file** — the Executor's results (mandatory)
+9. Related HL/TS/RF files referenced in the task
+10. Relevant code files modified by the Executor
+
+## Steps
+
+<Steps>
+  <Step title="Read and understand">
+    Read the RF thoroughly — understand what was done, how, and why. Read the TS to understand what was required. Read the HL to understand design philosophy and architectural intent. Examine the changed files to verify they match the RF claims. Read the Executor's ONB to check whether ONB recommendations were addressed.
+  </Step>
+
+  <Step title="Apply the 9-point checklist">
+    For each item, note pass or fail with evidence.
+
+    1. **DoD met?** — All items from the TS Definition of Done achieved.
+    2. **Code quality** — Follows project conventions, naming, type hints.
+    3. **Test coverage** — Tests written and passing per TS.
+    4. **Philosophy aligned** — Matches design philosophy from HL.
+    5. **Tech debt** — Any shortcuts taken? Are they documented?
+    6. **Security** — No secrets exposed, guards in place.
+    7. **Observability** — Logging, trace_id, records preserved.
+    8. **Breaking changes** — API compatibility, backward compatibility, migration needed?
+    9. **Style and standards** — Code style and naming conventions.
+
+    Each TS acceptance criterion must be verified individually. Approving without checking DoD is a known anti-pattern.
+  </Step>
+
+  <Step title="Tech debt triage">
+    After completing the checklist:
+
+    1. Read the Executor's `## Observations` section from the RF.
+    2. **Quality filter** — reject filler observations. Only promote items that would cause real problems if left unfixed.
+    3. Triage each surviving item with a severity rating: Low, Medium, or High.
+    4. Add a `## Tech Debt Collected` section to the REVIEW file.
+    5. Append the triaged items to the project-level `TECH_DEBT.md`.
+
+    ```markdown
+    ## Tech Debt Collected
+
+    | # | Source | Severity | File | Description | Action |
+    |---|--------|----------|------|-------------|--------|
+    | 1 | Phase A RF | Low | 3 files | Duplicate helpers | → backlog |
+    ```
+
+    Skipping the Observations triage is a known anti-pattern. Every observation must be triaged.
+  </Step>
+
+  <Step title="Write the REVIEW file">
+    Create the REVIEW file using `.tfw/templates/REVIEW.md`. It must contain:
+
+    - Checklist results (9-point, with evidence for each item).
+    - Tech debt collected from the Observations section.
+    - Verdict with justification.
+
+    If anything discovered during review is not in KNOWLEDGE.md, record it in §5 Fact Candidates. Review the conversation history first — user messages are the primary source of strategic knowledge.
+  </Step>
+
+  <Step title="Issue a verdict">
+    Choose one of three verdicts:
+
+    - **✅ APPROVE** — all checks pass. Update Task Board to `📚 KNW` and proceed to Step 6.
+    - **🔄 REVISE** — specific items need to be fixed. List each item clearly. The user starts a new `/tfw-handoff` session for fixes.
+    - **❌ REJECT** — fundamental issues with the approach or implementation. Back to HL/TS revision with a new `/tfw-plan`.
+  </Step>
+
+  <Step title="Update traces">
+    After issuing the verdict:
+
+    1. Update the Task Board in `README.md` — set status per the verdict.
+    2. Update `TECH_DEBT.md` — append any new items from Tech Debt Collected.
+    3. If the verdict is ✅ APPROVE: mark the task as `📚 KNW` in the Task Board. Do not mark `✅ DONE` yet — that happens after knowledge capture.
+  </Step>
+
+  <Step title="Knowledge capture (KNW)">
+    After an ✅ APPROVE verdict:
+
+    1. Run `/tfw-docs` — update KNOWLEDGE.md §1–§3 and TECH_DEBT.md.
+    2. If Fact Candidates exist in RF, REVIEW, or RES artifacts → run `/tfw-knowledge`.
+    3. Mark both steps in REVIEW §4: `tfw-docs: Applied/N/A` and `tfw-knowledge: Applied/N/A`.
+    4. When both markers are set → update Task Board status to `✅ DONE`.
+
+    For trivial tasks, the Reviewer may pre-mark both as N/A during the review itself.
+  </Step>
+</Steps>
+
+## Verdict outcomes
+
+| Verdict | Task Board status | Next action |
+|---------|------------------|-------------|
+| ✅ APPROVE | `📚 KNW` → `✅ DONE` | Run `/tfw-docs` + `/tfw-knowledge`, then close |
+| 🔄 REVISE | Back to `🟢 RF` | User starts a new `/tfw-handoff` session for fixes |
+| ❌ REJECT | User decides | (a) `📝 HL_DRAFT` — rework HL; (b) `🔬 RES` — new research; (c) `🟡 TS_DRAFT` — rewrite TS |
+
+## Role boundary
+
+The Reviewer role is locked for this workflow. Writing code, ONB, RF, HL, or TS is a Role Lock violation that requires an immediate stop.
+
+<Warning>
+The Reviewer must not modify any implementation artifacts. If fundamental issues are found, they go into the REVIEW file with a ❌ REJECT verdict — the Reviewer does not fix them.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="Consolidate knowledge" icon="database" href="/workflows/knowledge">
+    After an APPROVE verdict, run `/tfw-knowledge` to convert Fact Candidates into verified project knowledge.
+  </Card>
+  <Card title="Execute a task" icon="play" href="/workflows/handoff">
+    A REVISE verdict sends the task back to the Executor via a new `/tfw-handoff` session.
+  </Card>
+</CardGroup>

@@ -1,0 +1,83 @@
+---
+title: "Tool adapters: connecting TFW to your AI tools"
+description: "TFW's .tfw/ core is tool-agnostic. Adapters connect it to Claude Code, Cursor, and Antigravity — each reads the same conventions and workflows through its native interface."
+---
+
+TFW keeps its workflow engine in one place — the `.tfw/` directory. This directory contains the conventions, templates, glossary, and canonical workflows that define how every task moves from idea to verified result. Tool adapters are the thin layer that connects `.tfw/` to whichever AI assistant you use. The adapter tells the tool where to find TFW's rules and how to expose them natively — through slash commands, rules files, or workflow files — without duplicating any logic.
+
+## The adapter pattern
+
+The core design principle is simple: one `.tfw/` directory, multiple entry points.
+
+```
+CLAUDE.md           ──→  "Read .tfw/README.md, follow .tfw/conventions.md"
+.cursor/rules/      ──→  "Read .tfw/README.md, follow .tfw/conventions.md"
+.agent/rules/       ──→  "Read .tfw/README.md, follow .tfw/conventions.md"
+```
+
+Each adapter is intentionally minimal — at most 35 lines of content. It sets the role lock, specifies the context-loading order, and points to the canonical workflows in `.tfw/workflows/`. Nothing more. The canonical workflows are the single source of truth; adapters never duplicate their content.
+
+This means upgrading TFW — by running `/tfw-update` — updates the workflows once and all adapters stay in sync automatically. You don't maintain multiple copies of the same logic.
+
+## Adapter comparison
+
+| Tool | Entry point | How it surfaces TFW | Commands available |
+|------|------------|---------------------|--------------------|
+| Claude Code | `CLAUDE.md` (project root) | Slash commands via `.claude/commands/` | `/tfw-plan`, `/tfw-handoff`, `/tfw-review`, and 9 more |
+| Cursor | `.cursor/rules/tfw.mdc` | MDC rules file, `alwaysApply: true` | Inline references to `.tfw/workflows/` |
+| Antigravity | `.agent/rules/tfw.md` | Always-on rule + `.agent/workflows/` files | `/tfw-plan`, `/tfw-handoff`, `/tfw-review`, and more |
+| Plain chat | — (no adapter) | Read `.tfw/README.md` directly | Paste workflow steps manually |
+
+## Setup flow
+
+Setting up an adapter takes three steps regardless of which tool you use.
+
+<Steps>
+  <Step title="Copy .tfw/ to your project">
+    Clone the starter and copy the `.tfw/` directory into your project root. This is the tool-agnostic core — it works independently of any adapter.
+
+    ```bash
+    git clone https://github.com/saubakirov/trace-first-starter /tmp/tfw-starter
+    cp -r /tmp/tfw-starter/.tfw ./
+    ```
+  </Step>
+  <Step title="Run tfw-init">
+    Open your AI assistant and paste the quickstart prompt from the project README, or read `.tfw/workflows/init.md` directly and follow it. The initialization workflow walks you through project discovery, an interview, and adapter selection.
+  </Step>
+  <Step title="Choose and activate your adapter">
+    During `tfw-init`, the agent will ask which tool you use and copy the appropriate adapter files into place. You can also set up adapters manually by following the adapter-specific setup guide below.
+  </Step>
+</Steps>
+
+## Choose an adapter
+
+<CardGroup cols={2}>
+  <Card title="Claude Code" icon="terminal" href="/adapters/claude-code">
+    Eleven slash commands registered via `CLAUDE.md` and `.claude/commands/`. The most fully-featured integration.
+  </Card>
+  <Card title="Cursor" icon="pen-to-square" href="/adapters/cursor">
+    An MDC rules file at `.cursor/rules/tfw.mdc` with `alwaysApply: true`. Cursor loads it automatically in every chat.
+  </Card>
+  <Card title="Antigravity" icon="bolt" href="/adapters/antigravity">
+    An always-on rule at `.agent/rules/tfw.md` plus workflow files copied to `.agent/workflows/`. TFW becomes native Antigravity skills.
+  </Card>
+  <Card title="Plain chat" icon="message-circle" href="/quickstart">
+    No adapter needed. Share `.tfw/README.md` with your AI assistant and paste workflow steps as needed.
+  </Card>
+</CardGroup>
+
+## Why tool-agnostic design
+
+TFW's `.tfw/` core predates any specific AI tool — and will outlast any of them. The adapter pattern exists for two reasons.
+
+**Portability.** If you switch from Claude Code to Cursor, you copy one rules file. Your task traces, knowledge base, conventions, and workflows are untouched. No migration.
+
+**Maintenance.** Keeping logic in `.tfw/workflows/` means every adapter benefits from every improvement. When a workflow is refined, all adapters inherit the change on the next `/tfw-update`. There is no adapter-specific logic to maintain.
+
+## Using TFW without an adapter
+
+If you work in a plain chat interface — ChatGPT, Gemini, a custom AI, or any tool that can read files — you don't need an adapter. Share `.tfw/README.md` with your assistant at the start of the session. The agent will understand the lifecycle, the artifact types, and the conduct rules from that file alone. Paste the contents of whichever workflow you need (`plan.md`, `handoff.md`, `review.md`) and follow it step by step.
+
+<Info>
+  The agent reads `.tfw/README.md` for philosophy and `.tfw/conventions.md` for formal rules. These two files contain everything needed to run TFW correctly without any adapter.
+</Info>
